@@ -1,0 +1,3 @@
+[submodule "submodules/love"]
+	path = submodules/love
+	url = git@github.com:love2d/love.git
