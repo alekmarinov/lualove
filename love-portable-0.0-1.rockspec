@@ -1,20 +1,17 @@
 package = "love-portable"
 version = "0.0-1"
 source = {
-   url = "..." -- We don't have one yet
+   url = "https://github.com/alekmarinov/love-portable.git"
 }
 description = {
-   summary = "An example for the LuaRocks tutorial.",
+   summary = "Builds Love2D library as Lua module",
    detailed = [[
-      This is an example for the LuaRocks tutorial.
-      Here we would put a detailed, typically
-      paragraph-long description.
+      Sets up Love2D library (https://love2d.org/) to be used as a module from standalone Lua binary.
    ]],
-   homepage = "http://...", -- We don't have one yet
-   license = "MIT/X11" -- or whatever you like
+   homepage = "https://github.com/alekmarinov/love-portable",
+   license = "MIT/X11"
 }
 dependencies = {
-   -- If you depend on other rocks, add them here
 }
 build = {
    type = "cmake",
