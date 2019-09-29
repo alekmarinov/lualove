@@ -1,5 +1,3 @@
-print(package.path)
-print(package.cpath)
 local love = require "love-portable"
 
 function love.load()
