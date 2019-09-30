@@ -4,6 +4,9 @@ local boot = require "love.boot"
 love.boot = function()
     -- initializing love file system
     require("love.filesystem")
+    arg = arg or {
+        [0] = './'
+    }
     love.filesystem.init(arg[0])
 
     local scriptdir = arg[0]:match("(.*/)")

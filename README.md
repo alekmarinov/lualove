@@ -66,3 +66,9 @@ luarocks make --local
 ```
 lua demo/demo.lua
 ```
+
+## Debug
+
+Using Visual Studio Code and [Local Lua Debugger](https://marketplace.visualstudio.com/items?itemName=tomblind.local-lua-debugger-vscode) extension.
+
+![Debugging](debugging-lua-love.png "Debugging Lua Love")
