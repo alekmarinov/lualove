@@ -20,7 +20,11 @@ build = {
       lua = { 
          love = "src/lua/love.lua",
          ["love-portable"] = "src/lua/love-portable.lua",
-         ["love.boot"] = "submodules/love/src/scripts/boot.lua"
+         ["sti.init"] = "submodules/Simple-Tiled-Implementation/sti/init.lua",
+         ["sti.graphics"] = "submodules/Simple-Tiled-Implementation/sti/graphics.lua",
+         ["sti.utils"] = "submodules/Simple-Tiled-Implementation/sti/utils.lua",
+         ["sti.plugins.box2d"] = "submodules/Simple-Tiled-Implementation/sti/plugins/box2d.lua",
+         ["sti.plugins.bump"] = "submodules/Simple-Tiled-Implementation/sti/plugins/bump.lua"
       }
    }
 }

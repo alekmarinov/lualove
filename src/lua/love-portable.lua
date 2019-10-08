@@ -1,22 +1,28 @@
 local love = require "love"
 local boot = require "love.boot"
 
+-- In case the environment don't provide arg
+arg = arg or {
+    [0] = './'
+}
+
 love.boot = function()
     -- initializing love file system
     require("love.filesystem")
-    arg = arg or {
-        [0] = './'
-    }
-    love.filesystem.init(arg[0])
-
-    local scriptdir = arg[0]:match("(.*/)")
-    love.filesystem.setSource(scriptdir)
+    love.filesystem.init(arg[0] or '.')
+    love.filesystem.setSource(arg[0]:match("(.*/)") or ".")
 end
 
+local loveco = coroutine.create(boot)
+-- initializes love, calls boot.lua:earlyinit
+coroutine.resume(loveco)
+
 love.loop = function()
-    local co = coroutine.create(boot)
-    while coroutine.resume(co) do
-        -- print("tick")
+    -- love.load was not defined at time of earlyinit so calling it now
+    if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
+
+    -- let the game begin
+    while coroutine.resume(loveco) do
     end
 end
 

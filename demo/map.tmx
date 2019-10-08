@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.2" tiledversion="1.2.4" orientation="orthogonal" renderorder="right-down" width="20" height="20" tilewidth="100" tileheight="69" infinite="0" backgroundcolor="#18ce0b" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" name="map-tile" tilewidth="100" tileheight="69" tilecount="16" columns="4">
+  <image source="map-tile.png" width="400" height="276"/>
+  <tile id="0">
+   <properties>
+    <property name="speed" value="-80"/>
+   </properties>
+  </tile>
+  <tile id="1">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="2">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="3">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="4">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="5">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="6">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="7">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="8">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="9">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="10">
+   <properties>
+    <property name="speed" value="-100"/>
+   </properties>
+  </tile>
+  <tile id="11">
+   <properties>
+    <property name="speed" value="0"/>
+   </properties>
+  </tile>
+  <tile id="12">
+   <properties>
+    <property name="speed" value="0"/>
+   </properties>
+  </tile>
+  <tile id="14">
+   <properties>
+    <property name="speed" value="0"/>
+   </properties>
+  </tile>
+ </tileset>
+ <layer id="1" name="Ground" width="20" height="20">
+  <data encoding="csv">
+3,4,2,5,15,1,8,6,1,15,15,4,4,3,2,5,15,15,15,15,
+4,15,15,15,15,1,15,9,1,1,15,15,15,15,2,3,5,15,15,15,
+5,15,15,15,15,1,1,9,15,1,15,15,15,15,15,2,4,3,15,15,
+5,15,2,15,15,15,1,9,15,1,15,15,15,15,15,3,4,5,5,15,
+2,15,15,15,15,15,1,9,15,1,1,15,15,15,15,15,3,2,5,4,
+5,15,15,15,15,15,1,9,15,15,1,15,1,15,15,15,15,2,2,3,
+3,15,15,4,15,15,1,8,10,10,6,15,1,15,15,15,15,2,3,2,
+2,15,15,15,15,15,1,15,15,15,13,15,1,1,15,2,15,15,15,5,
+2,15,15,3,4,15,15,15,11,10,7,15,1,15,15,15,15,15,15,4,
+3,2,15,15,15,15,15,1,9,15,15,1,1,15,15,15,15,15,15,2,
+2,2,15,15,15,15,15,15,9,15,15,1,1,15,3,15,15,15,15,4,
+5,4,15,15,5,15,15,15,13,15,15,15,1,15,15,1,1,15,15,2,
+4,3,15,15,15,15,15,15,8,10,12,10,10,10,10,6,1,15,15,2,
+2,3,15,15,15,15,15,1,15,15,15,15,1,1,15,9,15,1,15,4,
+5,2,3,15,15,4,15,15,15,1,15,15,15,15,15,9,15,1,15,3,
+5,2,4,15,15,15,15,15,15,15,15,11,10,12,10,7,15,15,15,3,
+15,2,5,4,15,15,15,15,1,15,15,9,15,15,15,15,1,15,15,5,
+15,2,5,5,15,15,1,15,15,15,15,9,15,1,1,15,15,15,15,2,
+15,15,2,2,15,15,1,11,10,12,10,7,1,1,1,15,15,3,3,4,
+15,15,4,4,15,15,15,9,15,15,15,15,15,15,15,15,5,4,4,2
+</data>
+ </layer>
+</map>
