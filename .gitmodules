@@ -3,4 +3,4 @@
 	url = https://github.com/love2d/love.git
 [submodule "submodules/Simple-Tiled-Implementation"]
 	path = submodules/Simple-Tiled-Implementation
-	url = https://github.com/karai17/Simple-Tiled-Implementation.git
+	url = https://github.com/alekmarinov/Simple-Tiled-Implementation.git
