@@ -36,7 +36,7 @@ function Selector:collect_selected_units()
     end
     for tx = tile_from_tx, tile_to_tx do
         for ty = tile_from_ty, tile_to_ty do
-            local tileInfo = Game.map:getTileInfoAt(tx, ty)
+            local tileInfo = Game.map:getTileAt(tx, ty)
             if tileInfo and tileInfo.units then
                 for _, unit in ipairs(tileInfo.units) do
                     if unit.player == Game.currentPlayer then

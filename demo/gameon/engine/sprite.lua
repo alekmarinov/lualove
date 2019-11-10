@@ -7,6 +7,8 @@ local Sprite = {
     action = nil, -- The name of current animation action
     x = 0, -- The sprite x position
     y = 0, -- The sprite y position
+    last_update_x = -1, -- The x position of last sprite update
+    last_update_y = -1, -- The y position of last sprite update
     flipped = false -- Is the sprite flipped horizontally
 }
 Sprite.__index = Sprite
@@ -47,7 +49,7 @@ function Sprite:setPos(x, y)
     local frameinfo = self.spriteSheet.frames[self.action]
     local tx, ty = self.map:convertPixelToTile(x + frameinfo.origin_x, y + frameinfo.origin_y)
     local previousTile = self.currentTile
-    self.currentTile = self.map:getTileInfoAt(tx, ty)   
+    self.currentTile = self.map:getTileAt(tx, ty)   
     self.x = x
     self.y = y
     if previousTile ~= self.currentTile then
@@ -63,23 +65,11 @@ end
 -- This method will be called in response of SpriteSheet.update(dt).
 -- @param dt time elapsed from last love.update
 function Sprite:update(dt)
-    if not dt then
-        self.spriteSheet:updateSprite(self)
-        return
+    if self.animation then
+        self.animation:update(dt)
     end
 
-    -- if #self.animations > 0 then
-    --     if self.animations[1]:update(dt) then
-    --         self.animations = {}
-    --     end
-    --     self.spriteSheet:updateSprite(self)
-    -- end
-    if self.animation then
-        if self.animation:update(dt) then
-            -- self.animation = nil
-        end
-        self.spriteSheet:updateSprite(self)
-    end
+    force_update = self.last_update_x ~= self.x or self.last_update_y ~= self.y
 
     local action_frames_count = #self.spriteSheet.frames[self.action]
     local action_duration = self.spriteSheet.frames[self.action].duration
@@ -89,15 +79,16 @@ function Sprite:update(dt)
     end
     local frame_index = math.floor(self.current_time / action_duration * action_frames_count) % action_frames_count + 1
 
-    if self.frame_index ~= frame_index then
+    if force_update or self.frame_index ~= frame_index then
         self.frame_index = frame_index
         self.spriteSheet:updateSprite(self)
+        -- print("Sprite:update: action = ", self.action, ", self.frame_index = ", self.frame_index, self.current_time, dt)
     end
 end
 
 function Sprite:destroy()
     if self.currentTile then
-        self.map:removeUnitFromTile(self)
+        self.map:removeUnitFromTile(self, self.currentTile)
     end
     self.spriteSheet:deleteSprite(self)    
     self.deleted = true

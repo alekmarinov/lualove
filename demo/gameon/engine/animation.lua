@@ -39,9 +39,9 @@ function Animation:interpolation(dt)
             table.insert(varvalues, self.varsto[varname])
         end
     end
-    self.callback_update(unpack(varvalues))
+    self.callback_update(self.object, unpack(varvalues))
     if finished and self.callback_finished then
-        self.callback_finished()
+        self.callback_finished(self.object)
     end
     return finished
 end

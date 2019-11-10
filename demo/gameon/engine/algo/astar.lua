@@ -7,7 +7,8 @@ local PriorityQueue = require (thispackage..".priorityqueue")
 local List = require 'pl.List'
 
 local AStar = {
-    DEPTH_LIMIT = 100
+    DEPTH_LIMIT = 100,
+    DEPTH_LIMIT_FAST = 10
 }
 AStar.__index = AStar
 
@@ -25,6 +26,7 @@ function AStar:find(start, goal, options)
     options = options or {}
     local callback_visited = options.callback_visited
     local excluded = options.excluded or {}
+    local depth_limit = options.depth_limit or AStar.DEPTH_LIMIT
     local frontier = PriorityQueue()
     local came_from = {
         [start] = nil
@@ -50,7 +52,7 @@ function AStar:find(start, goal, options)
 
         -- depth limit
         depth = depth + 1
-        if distance == 0 or depth == AStar.DEPTH_LIMIT then
+        if distance == 0 or depth == depth_limit then
             break
         end
 

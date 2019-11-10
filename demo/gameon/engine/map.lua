@@ -31,17 +31,18 @@ Map.__index = Map
 function Map.load(params)
     local o = setmetatable({
         spritesheets = {},
-        tilesinfo = {},
+        tiles = {},
         cursor = nil,
         offset_x = 0,
-        offset_y = 0
+        offset_y = 0,
+        visited_nodes = {}
     }, Map)
     o.sti = sti(params.mapfile)
 
     for j = 1, o.sti.layers["Ground"].height do
-        o.tilesinfo[j] = {}
+        o.tiles[j] = {}
         for i = 1, o.sti.layers["Ground"].width do
-            o.tilesinfo[j][i] = {
+            o.tiles[j][i] = {
                 x = i,
                 y = j
             }
@@ -81,7 +82,7 @@ function Map.load(params)
         end
 
         -- draw visited nodes
-        if o.show_visited and o.visited_nodes then
+        if o.show_visited and #o.visited_nodes > 0 then
             for _, visited_node in ipairs(o.visited_nodes) do
                 local node = visited_node[1]
                 local cost = visited_node[2]
@@ -132,6 +133,18 @@ function Map.load(params)
     return o
 end
 
+function Map:reserveTileForUnit(unit, tile)
+    tile.reservedBy = unit
+end
+
+function Map:unreserveTileFromUnit(unit, tile)
+    tile.reservedBy = nil
+end
+
+function Map:isTileReserved(tile)
+    return tile.reservedBy ~= nil
+end
+
 function Map:neighboursIterator(tile)
     local nextiter = HexMap.neighbours(tile)
     return function()
@@ -139,7 +152,7 @@ function Map:neighboursIterator(tile)
         repeat
             i, next = nextiter()
             if next then
-                tile = self:getTileInfoAt(next.x, next.y)
+                tile = self:getTileAt(next.x, next.y)
                 local props = self:getTileProperties(next.x, next.y)
                 if tonumber(props.move_points) < 0 then
                     tile = nil
@@ -157,18 +170,46 @@ function Map:neighboursIterator(tile)
     end
 end
 
+function Map:findPath(tile1, tile2, excluded, isfast)
+    self.visited_nodes = {}
+    return self.astar:find(tile1, tile2, {
+        excluded = excluded,
+        depth_limit = isfast and AStar.DEPTH_LIMIT_FAST or AStar.DEPTH_LIMIT,
+        callback_visited = function (node, cost)
+            table.insert(self.visited_nodes, {node, cost})
+        end}) or {}
+end
+
+function Map:findPathFast(tile1, tile2, excluded)
+    return self:findPath(tile1, tile2, excluded, true)
+end
+
+function Map:getTileMovingPoints(tile)
+    local props = self:getTileProperties(tile.x, tile.y)
+    return tonumber(props.move_points)
+end
+
+function Map:getUnitAtTile(tile)
+    return tile.units and tile.units[1]
+end
+
 function Map:getHexSideLength()
     return self.sti.hexsidelength
 end
 
-function Map:getTileInfoAt(tx, ty)
-    if self.tilesinfo[ty] then
-        return self.tilesinfo[ty][tx]
+function Map:getTileAt(tx, ty)
+    if self.tiles[ty] then
+        return self.tiles[ty][tx]
     end
 end
 
 function Map:getTileProperties(tx, ty)
     return self.sti:getTileProperties("Ground", tx, ty)
+end
+
+function Map:getTileAtPixel(x, y)
+    local tx, ty = self:convertPixelToTile(x, y)
+    return self:getTileAt(tx, ty)
 end
 
 function Map:convertPixelToTile(mx, my)
@@ -210,7 +251,7 @@ function Map:setcursor(x, y)
     self.cursor.y = y
 
     -- select the first unit on tile
-    local tile = self:getTileInfoAt(x, y)
+    local tile = self:getTileAt(x, y)
     local unit = tile and tile.units and tile.units[1]
     if unit then
         self:selectunit(unit)
@@ -226,7 +267,7 @@ end
 function Map:unsetcursor()
     self.cursor = nil
     self.selected_unit = nil
-    self.visited_nodes = nil
+    self.visited_nodes = {}
     self.neighbours = nil
 end
 
@@ -276,7 +317,7 @@ function Map:smoothcentertile(tx, ty)
         callback_finished = function()
             self.animation = nil
         end,
-        callback_update = function (offset_x, offset_y)
+        callback_update = function (self, offset_x, offset_y)
             self.offset_x, self.offset_y = offset_x, offset_y
         end
     }
@@ -303,8 +344,8 @@ function Map:mappressed(x, y, b)
             -- self:setcursor(tile_x, tile_y)
 
             -- -- find path
-            -- local tilestart = self:getTileInfoAt(self.selected_unit.tx, self.selected_unit.ty)
-            -- local tilegoal = self:getTileInfoAt(tile_x, tile_y)
+            -- local tilestart = self:getTileAt(self.selected_unit.tx, self.selected_unit.ty)
+            -- local tilegoal = self:getTileAt(tile_x, tile_y)
             -- if tilestart and tilegoal then
             --      self.visited_nodes = {}
             --     local path = self.astar:find(tilestart, tilegoal, function (node, cost)
