@@ -23,4 +23,30 @@ function Draw.hexagon(cx, cy, size)
 	end
 end
 
+function Draw.dashline( p1, p2, dash, gap )
+    local dy, dx = p2.y - p1.y, p2.x - p1.x
+    local an, st = math.atan2( dy, dx ), dash + gap
+    local len = math.sqrt( dx*dx + dy*dy )
+    local nm = ( len - dash ) / st
+    love.graphics.push()
+    love.graphics.translate( p1.x, p1.y )
+    love.graphics.rotate( an )
+    for i = 0, nm do
+        love.graphics.line(i * st, 0, i * st + dash, 0)
+    end
+    love.graphics.pop()
+end
+
+function Draw.dashrect( p1, p2, dash, gap)
+    local topleft = { x = math.min(p1.x, p2.x), y = math.min(p1.y, p2.y) }
+    local bottomright = { x = math.max(p1.x, p2.x), y = math.max(p1.y, p2.y) }
+    local topright = { x = bottomright.x, y = topleft.y }
+    local bottomleft = { x = topleft.x, y = bottomright.y }
+
+    Draw.dashline(topleft, topright, dash, gap)
+    Draw.dashline(topright, bottomright, dash, gap)
+    Draw.dashline(bottomright, bottomleft, dash, gap)
+    Draw.dashline(bottomleft, topleft, dash, gap)
+end
+
 return Draw

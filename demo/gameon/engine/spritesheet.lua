@@ -38,15 +38,18 @@ function SpriteSheet.load(jsonfile)
         local action_name = action_name_index:sub(1, -5)
         o.frames[action_name] = o.frames[action_name] or {}
         o.frames[action_name].duration = 1
-        o.frames[action_name][frame_index] = love.graphics.newQuad(
-            frameinfo.frame.x, frameinfo.frame.y,
-            frameinfo.frame.w, frameinfo.frame.h, image:getDimensions())
-        if frameinfo.frame.w > o.max_width then
-            o.max_width = frameinfo.frame.w
-        end
-        if frameinfo.frame.h > o.max_height then
-            o.max_height = frameinfo.frame.h
-        end
+        o.frames[action_name].origin_x = (o.frames[action_name].origin_x or 0) + frameinfo.frame.w
+        o.frames[action_name].origin_y = (o.frames[action_name].origin_y or 0) + frameinfo.frame.h
+        o.frames[action_name][frame_index] = {
+            quad = love.graphics.newQuad(
+                frameinfo.frame.x, frameinfo.frame.y,
+                frameinfo.frame.w, frameinfo.frame.h, image:getDimensions()),
+            frame = frameinfo.spriteSourceSize
+        }
+    end
+    for action_name, action_info in pairs(o.frames) do
+        action_info.origin_x = action_info.origin_x / #action_info / 2
+        action_info.origin_y = action_info.origin_y / #action_info / 2
     end
     o.batch = love.graphics.newSpriteBatch(image)
     return o
@@ -69,8 +72,9 @@ function SpriteSheet:createSprite(sprite)
     sprite.current_time = 0
     sprite.sprite_index = sprite_index
 
-    local quad = self.frames[sprite.action][sprite.frame_index]
-    local params = {quad, sprite.x, sprite.y, 0, sprite.flipped and -1 or 1, 1}
+    local frameinfo = self.frames[sprite.action][sprite.frame_index]
+    local flipped_correction = sprite.flipped and frameinfo.frame.w or 0
+    local params = {frameinfo.quad, sprite.x + flipped_correction, sprite.y, 0, sprite.flipped and -1 or 1, 1}
     if sprite_index > #self.sprites then
         -- add new sprite's quad to batch
         self.batch:add(unpack(params))
@@ -91,15 +95,9 @@ end
 -- @param sprite A sprite instance
 -- @see gameon.engine.Sprite
 function SpriteSheet:updateSprite(sprite)
-    local quad = self.frames[sprite.action][sprite.frame_index]
-    if not quad then
-        print(string.format("Quad is missing for %s frame #%d", sprite.action, sprite.frame_index))
-    end
-    local flipped_correction = 0
-    if sprite.flipped then
-        flipped_correction = self.max_width
-    end
-    self.batch:set(sprite.sprite_index, quad, sprite.x + flipped_correction, sprite.y, 0, sprite.flipped and -1 or 1, 1)
+    local frameinfo = self.frames[sprite.action][sprite.frame_index]
+    local flipped_correction = sprite.flipped and frameinfo.frame.w or 0
+    self.batch:set(sprite.sprite_index, frameinfo.quad, sprite.x + flipped_correction, sprite.y, 0, sprite.flipped and -1 or 1, 1)
 end
 
 --- Deletes sprite instance

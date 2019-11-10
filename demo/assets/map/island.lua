@@ -41,167 +41,290 @@ return {
       tiles = {
         {
           id = 0,
-          type = "plains"
+          type = "plains",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 1,
-          type = "plains with trees"
+          type = "plains with trees",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 2,
-          type = "forest"
+          type = "forest",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 3,
-          type = "mountain"
+          type = "mountain",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 4,
-          type = "mountain forest"
+          type = "mountain forest",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 5,
-          type = "hills"
+          type = "hills",
+          properties = {
+            ["move_points"] = "-1"
+          }
         },
         {
           id = 6,
-          type = "shallow water"
+          type = "shallow water",
+          properties = {
+            ["move_points"] = "-1"
+          }
         },
         {
           id = 7,
-          type = "deep water"
+          type = "deep water",
+          properties = {
+            ["move_points"] = "-1"
+          }
         },
         {
           id = 8,
-          type = "town"
+          type = "town",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 9,
-          type = "protected town"
+          type = "protected town",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 10,
-          type = "castle"
+          type = "castle",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 11,
-          type = "green desert"
+          type = "green desert",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 12,
-          type = "grassland with trees"
+          type = "grassland with trees",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 13,
-          type = "grassland with bushes"
+          type = "grassland with bushes",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 14,
-          type = "grassland"
+          type = "grassland",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 15,
-          type = "dark grassland"
+          type = "dark grassland",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 16,
-          type = "iceland"
+          type = "iceland",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 17,
-          type = "iceland with trees"
+          type = "iceland with trees",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 18,
-          type = "iceland with forest"
+          type = "iceland with forest",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 19,
-          type = "iceland montain"
+          type = "iceland montain",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 20,
-          type = "iceland mountain forest"
+          type = "iceland mountain forest",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 21,
-          type = "shallow water with rocks"
+          type = "shallow water with rocks",
+          properties = {
+            ["move_points"] = "-1"
+          }
         },
         {
           id = 22,
-          type = "iceland town"
+          type = "iceland town",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 23,
-          type = "iceland castle"
+          type = "iceland castle",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 24,
-          type = "desert"
+          type = "desert",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 25,
-          type = "desert with rocks"
+          type = "desert with rocks",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 26,
-          type = "dunes"
+          type = "dunes",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 27,
-          type = "desert hills"
+          type = "desert hills",
+          properties = {
+            ["move_points"] = "-1"
+          }
         },
         {
           id = 28,
-          type = "oasis"
+          type = "oasis",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 29,
-          type = "oasis rocks"
+          type = "oasis rocks",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 30,
-          type = "desert town"
+          type = "desert town",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 31,
-          type = "desert castle"
+          type = "desert castle",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 32,
-          type = "deep forest"
+          type = "deep forest",
+          properties = {
+            ["move_points"] = "2"
+          }
         },
         {
           id = 33,
-          type = "stone cave"
+          type = "stone cave",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 34,
-          type = "iceland cave"
+          type = "iceland cave",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 35,
-          type = "mud cave"
+          type = "mud cave",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 36,
-          type = "sea town left"
+          type = "sea town left",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 37,
-          type = "sea town right"
+          type = "sea town right",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 38,
-          type = "lighthouse"
+          type = "lighthouse",
+          properties = {
+            ["move_points"] = "-1"
+          }
         },
         {
           id = 39,
-          type = "plains with trees 2"
+          type = "plains with trees 2",
+          properties = {
+            ["move_points"] = "1"
+          }
         },
         {
           id = 40,
-          type = "small village"
+          type = "small village",
+          properties = {
+            ["move_points"] = "1"
+          }
         }
       }
     }

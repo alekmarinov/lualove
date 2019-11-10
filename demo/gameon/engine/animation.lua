@@ -16,27 +16,30 @@ function Animation.new(params)
         varlist = params.varlist,
         varsto = params.varsto,
         object = params.object,
+        callback_finished = params.callback_finished,
+        callback_update = params.callback_update,
         initials = {}
     }, Animation)
 
     for _, varname in ipairs(o.varlist) do
         o.initials[varname] = o.object[varname]
     end
-
     return o
 end
 
 function Animation:interpolation(dt)
     local finished = true
+    local varvalues = {}
     for _, varname in ipairs(self.varlist) do
         local dx = dt * (self.varsto[varname] - self.initials[varname]) / self.duration
         if (dx < 0 and self.object[varname] + dx > self.varsto[varname]) or (dx > 0 and self.object[varname] + dx < self.varsto[varname]) then
-            self.object[varname] = self.object[varname] + dx
+            table.insert(varvalues, self.object[varname] + dx)
             finished = false
         else
-            self.object[varname] = self.varsto[varname]
+            table.insert(varvalues, self.varsto[varname])
         end
     end
+    self.callback_update(unpack(varvalues))
     if finished and self.callback_finished then
         self.callback_finished()
     end
