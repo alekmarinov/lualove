@@ -30,8 +30,8 @@ function HexMap.neighbours(offset)
 end
 
 function HexMap.offset_to_cube(offset)
-    local x = offset.x - math.floor((offset.y - offset.y % 2) / 2)
-    local z = offset.y
+    local x = offset.x
+    local z = offset.y - (offset.x + offset.x % 2) / 2
     local y = -x-z
     return {x = x, y = y, z = z}
 end
@@ -42,12 +42,12 @@ end
 
 -- https://github.com/peterwittek/somoclu/issues/130
 function HexMap.offset_distance(a, b)
-    local dx = a.x - b.x
-    local dy = a.y - b.y
-    return math.sqrt(dx * dx + dy * dy * 0.75)
-    -- local ac = HexMap.offset_to_cube(a)
-    -- local bc = HexMap.offset_to_cube(b)
-    -- return HexMap.cube_distance(ac, bc)
+    -- local dx = a.x - b.x
+    -- local dy = a.y - b.y
+    -- return math.sqrt(dx * dx + dy * dy * 0.75)
+    local ac = HexMap.offset_to_cube(a)
+    local bc = HexMap.offset_to_cube(b)
+    return HexMap.cube_distance(ac, bc)
 end
 
 return HexMap

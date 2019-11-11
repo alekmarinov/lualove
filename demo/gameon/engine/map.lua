@@ -12,6 +12,7 @@ local SpriteSheet = require (thispackage..".spritesheet")
 local Sprite = require (thispackage..".sprite")
 local Unit = require (thispackage..".unit")
 local Draw = require (thispackage..".draw")
+local Paint = require (thispackage..".paint")
 local Selector = require (thispackage..".selector")
 local Game = require "gameon.game"
 
@@ -35,7 +36,9 @@ function Map.load(params)
         cursor = nil,
         offset_x = 0,
         offset_y = 0,
-        visited_nodes = {}
+        visited_nodes = {},
+        drawables = {},
+        cross = nil
     }, Map)
     o.sti = sti(params.mapfile)
 
@@ -50,8 +53,12 @@ function Map.load(params)
     end
     local layer = o.sti:addCustomLayer("Sprites", 2)
 
-    for _, spritesheetfile in ipairs(params.spritesheets or {}) do
-        local spritesheet = SpriteSheet.load(spritesheetfile)
+    local paint = Paint.new()
+    for spritesheetfile, colors in pairs(params.spritesheets or {}) do
+        local spritesheet = SpriteSheet.load(paint, spritesheetfile, o:getHexSideLength())
+        for _, color in ipairs(colors) do
+            spritesheet:createForColor(color)
+        end
         table.insert(o.spritesheets, spritesheet)
         o.spritesheets[spritesheet.name] = spritesheet
     end
@@ -63,14 +70,24 @@ function Map.load(params)
 
         -- draw sprites
         for _, spritesheet in ipairs(o.spritesheets) do
-            -- for _, sprite in ipairs(spritesheet.sprites) do
+            -- for _, sprite in ipairs(spritesheet.sprites.MAGENTA or {}) do
             --     local frameinfo = spritesheet.frames[sprite.action][sprite.frame_index].frame
-            --     love.graphics.setColor(1, 1, 1, 1)
-            --     love.graphics.setLineWidth(2)
-            --     love.graphics.setLineStyle("smooth")
-            --     love.graphics.ellipse( "line", sprite.x + frameinfo.w / 2, sprite.y + frameinfo.h - o.sti.hexsidelength / 4, o.sti.hexsidelength, o.sti.hexsidelength / 2)
+            --     local endpt = {
+            --         x = sprite.x + frameinfo.w,
+            --         y = sprite.y + frameinfo.h
+            --     }
+            --     Draw.dashrect(sprite, endpt, 3, 3)
+                -- love.graphics.setColor(1, 1, 1, 1)
+                -- love.graphics.setLineWidth(1)
+                -- love.graphics.setLineStyle("rough")
+                -- love.graphics.ellipse( "line", sprite.x + frameinfo.w / 2, sprite.y + frameinfo.h - o.sti.hexsidelength / 4, o.sti.hexsidelength, o.sti.hexsidelength / 2)
             -- end
             spritesheet:draw()
+        end
+
+        -- draw drawables
+        for _, drawable in ipairs(o.drawables) do
+            drawable:draw()
         end
 
         -- draw cursor
@@ -112,6 +129,11 @@ function Map.load(params)
                 Draw.hexagon(px, py, o.sti.hexsidelength)
                 love.graphics.printf(string.format("%d", i), px - o.sti.hexsidelength, py - o.sti.hexsidelength/2, 2 * o.sti.hexsidelength, "center")
             end
+        end
+
+        if o.cross then
+            love.graphics.setColor(o.color_cursor)
+            Draw.cross(o.cross, o.sti.hexsidelength / 2)
         end
 
         Selector:draw()
@@ -172,12 +194,13 @@ end
 
 function Map:findPath(tile1, tile2, excluded, isfast)
     self.visited_nodes = {}
-    return self.astar:find(tile1, tile2, {
+    self.selected_path_to = self.astar:find(tile1, tile2, {
         excluded = excluded,
         depth_limit = isfast and AStar.DEPTH_LIMIT_FAST or AStar.DEPTH_LIMIT,
         callback_visited = function (node, cost)
             table.insert(self.visited_nodes, {node, cost})
         end}) or {}
+    return self.selected_path_to
 end
 
 function Map:findPathFast(tile1, tile2, excluded)
@@ -191,6 +214,15 @@ end
 
 function Map:getUnitAtTile(tile)
     return tile.units and tile.units[1]
+end
+
+function Map:getTileOfUnit(unit)
+    local tile = unit:getCurrentTile()
+    tile = tile and tile.units and pltablex.find(tile.units, unit) and tile
+    if not tile then
+        print("No tile for unit ", unit)
+    end
+    return tile
 end
 
 function Map:getHexSideLength()
@@ -233,15 +265,11 @@ function Map:addUnitToTile(unit, tile)
     table.insert(tile.units, unit)
 end
 
-function Map:spawnunit(unit, tx, ty)
-    unit.map = self
-    local spritesheet = self.spritesheets[unit.typename]
-    spritesheet:createSprite(unit)
-    
-    unit:setPos(unit:getPositionAtTile(tx, ty))
-
-    -- -- add unit to tile
-    -- self:addUnitToTile(unit)
+function Map:spawnSprite(sprite, tx, ty)
+    sprite.map = self
+    local spritesheet = self.spritesheets[sprite.typename]
+    spritesheet:createSprite(sprite)
+    sprite:setPos(sprite:getPositionAtTile(self:getTileAt(tx, ty)))
 end
 
 function Map:setcursor(x, y)
@@ -273,6 +301,19 @@ end
 
 function Map:selectunit(unit)
     self.selected_unit = unit
+end
+
+function Map:addDrawable(drawable)
+    if not pltablex.find(self.drawables, drawable) then
+        table.insert(self.drawables, drawable)
+    end
+end
+
+function Map:removeDrawable(drawable)
+    local idx = pltablex.find(self.drawables, drawable)
+    if idx then
+        table.remove(self.drawables, idx)
+    end
 end
 
 function Map:draw()
@@ -328,6 +369,16 @@ function Map:convertPixelToMapCoord(x, y)
 end
 
 function Map:mappressed(x, y, b)
+    if b == 1 then
+        self.cross = {}
+        self.cross.x, self.cross.y = self:convertPixelToTile(x, y)
+        local tile = self:getTileAt(self.cross.x, self.cross.y)
+        self.cross.x, self.cross.y = self:convertTileToPixel(self.cross.x, self.cross.y)
+        for i, v in pairs(tile) do
+            print(i, v)
+        end
+    end
+
     if Selector:mappressed(x, y, b) then
         return true
     end
@@ -357,13 +408,12 @@ function Map:mappressed(x, y, b)
             self:setcursor(tile_x, tile_y)
             for _, unit in ipairs(Selector.selected_units) do
                 -- move unit
-                unit:moveto(x, y)
-                -- self:moveunit(unit, tile_x, tile_y)
+                unit:moveTo(x, y, love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift"))
             end
         end
     elseif b == 3 then
         local tile_x, tile_y = self.sti:convertPixelToTile(x, y)
-        map:spawnunit(Unit.new(Game.currentPlayer, "barbarian1"), tile_x, tile_y)
+        map:spawnSprite(Unit.new(Game.currentPlayer, "barbarian1"), tile_x, tile_y)
     end
 end
 
@@ -423,7 +473,7 @@ function Map:keypressed(key)
         for i = #Selector.selected_units, 1, -1 do
             local unit = Selector.selected_units[i]
             unit:destroy()
-            table.remove(Selector.selected_units)
+            Selector.selected_units[i] = nil
         end
     end
 end

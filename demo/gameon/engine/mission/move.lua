@@ -1,20 +1,22 @@
 
 local Mission = require "gameon.engine.mission"
 local Animation = require "gameon.engine.animation"
+local Sprite = require "gameon.engine.sprite"
 
-local MoveMission = setmetatable({
+local MissionMove = setmetatable({
+    _NAME = "MissionMove",
     moveprops = { "x", "y" },
     WAIT_TIME_START = 1,
     WAIT_TIME_MAX = 2,
     MAX_WAIT_ATTEMPTS = 4
 }, Mission)
-MoveMission.__index = MoveMission
+MissionMove.__index = MissionMove
 
-local function animation_callback_update(unit, x, y)
+function MissionMove.animationCallbackUpdate(unit, x, y)
     unit:setPos(x, y)
 end
 
-function MoveMission.new(unit, tileto)
+function MissionMove.new(unit, tileto)
     local o = setmetatable(Mission.new{
         unit = unit,
         tileto = tileto,
@@ -23,35 +25,35 @@ function MoveMission.new(unit, tileto)
         moveto = { x = 0, y = 0 },
         wait = 0,
         wait_attempt = 0,
-        wait_time = MoveMission.WAIT_TIME_START,
+        wait_time = MissionMove.WAIT_TIME_START,
         completed = false
-    }, MoveMission)
+    }, MissionMove)
     return o
 end
 
-function MoveMission:reserveTile(tile)
+function MissionMove:reserveTile(tile)
     self:unreserveTile()
     self.reservedTile = tile
     self.map:reserveTileForUnit(self.unit, tile)
 end
 
-function MoveMission:unreserveTile()
+function MissionMove:unreserveTile()
     if self.reservedTile then
         self.map:unreserveTileFromUnit(self.unit, self.reservedTile)
         self.reservedTile = nil
     end
 end
 
-function MoveMission:update(dt)
+function MissionMove:update(dt)
     if self.completed then
         return true
     end
-    if self.wait_attempt == MoveMission.MAX_WAIT_ATTEMPTS then
-        -- waiting attempts to finish the mission exceeded max allowed, aborting the mission
-        print("waiting attempts to finish the mission exceeded max allowed, aborting the mission")
-        self:abort(true)
-        return true
-    end
+    -- if self.wait_attempt == MissionMove.MAX_WAIT_ATTEMPTS then
+    --     -- waiting attempts to finish the mission exceeded max allowed, aborting the mission
+    --     print("waiting attempts to finish the mission exceeded max allowed, aborting the mission")
+    --     self:abort(true)
+    --     return true
+    -- end
     if self.wait > 0 then
         self.wait = math.max(0, self.wait - dt)
         return
@@ -62,7 +64,7 @@ function MoveMission:update(dt)
             self.moveAnimation = nil
             table.remove(self.movesteps, 1)
         else
-            -- just moving
+            -- still moving
             return false
         end
     end
@@ -78,7 +80,7 @@ function MoveMission:update(dt)
         if self.tilefrom then
             excluded[self.tilefrom] = true
         end
-        if self.wait_time > MoveMission.WAIT_TIME_START then
+        if self.wait_time > MissionMove.WAIT_TIME_START then
             self.movesteps = self.map:findPathFast(currentTile, self.tileto, excluded)
         else
             self.movesteps = self.map:findPath(currentTile, self.tileto, excluded)
@@ -109,46 +111,69 @@ function MoveMission:update(dt)
         self:unwaiting()
 
         self:reserveTile(nextTile)
-        self.moveto.x, self.moveto.y = self.unit:getPositionAtTile(nextTile.x, nextTile.y)
+        self.moveto.x, self.moveto.y = self.unit:getPositionAtTile(nextTile)
+        -- FIXME: Implement method look toward tile
         if self.moveto.x ~= self.unit.x then
             self.unit.flipped = self.moveto.x < self.unit.x
         end
         self.moveAnimation = Animation.new{
-            duration = self.map:getTileMovingPoints(nextTile) * self.unit.moveduration,
+            duration = self.map:getTileMovingPoints(nextTile) * self.unit.moveDuration,
             varlist = self.moveprops,
             varsto = self.moveto,
             object = self.unit,
-            callback_update = animation_callback_update
+            callback_update = MissionMove.animationCallbackUpdate
         }
-        self.unit:setaction("Walking")
+        self.unit:setAction("Walking")
     end
     return false
 end
 
-function MoveMission:abort(completed)
+function MissionMove:abort(completed)
     self.moveAnimation = nil
     for i = 0, #self.movesteps do
         self.movesteps[i]=nil
     end
-    self.unit:setaction("Idle")
+    self.unit:setAction("Idle")
     self:unreserveTile()
     self.completed = completed
+    self:showHideFlag(false)
 end
 
-function MoveMission:isCompleted()
+function MissionMove:isCompleted()
     return self.completed
 end
 
-function MoveMission:waiting()
+function MissionMove:waiting()
     self.wait = self.wait_time
     self.wait_attempt = self.wait_attempt + 1
-    self.wait_time = math.max(MoveMission.WAIT_TIME_MAX, self.wait_time * 2)
+    self.wait_time = math.max(MissionMove.WAIT_TIME_MAX, self.wait_time * 2)
 end
 
-function MoveMission:unwaiting()
+function MissionMove:unwaiting()
     self.wait = 0
     self.wait_attempt = 0
-    self.wait_time = MoveMission.WAIT_TIME_START
+    self.wait_time = MissionMove.WAIT_TIME_START
 end
 
-return MoveMission
+function MissionMove:onSelected(selected)
+    self:showHideFlag(selected)
+end
+
+function MissionMove:showHideFlag(showing)
+    if showing then
+        if not self.flagSprite then
+            self.flagSprite = Sprite.new{
+                color = self.unit.color,
+                typename = "flag"
+            }
+            map:spawnSprite(self.flagSprite, self.tileto.x, self.tileto.y)
+        end
+    else
+        if self.flagSprite then
+            self.flagSprite:destroy()
+            self.flagSprite = nil
+        end
+    end
+end
+
+return MissionMove

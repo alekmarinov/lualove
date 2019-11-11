@@ -8,17 +8,13 @@ local Player = {
 Player.__index = Player
 
 function Player.new(options)
-    local rules = options.rules
-    local o = setmetatable({
-        team = options.team,
-        units = {},
-        resources = {
-            gold = rules.init_resources.gold or 0,
-            wood = rules.init_resources.wood or 0,
-            food = rules.init_resources.food or 0
-        }
-    }, Player)
-
+    local o = setmetatable(options, Player)
+    o.units = {}
+    o.resources = {
+        gold = o.game.rules.init_resources.gold or 0,
+        wood = o.game.rules.init_resources.wood or 0,
+        food = o.game.rules.init_resources.food or 0
+    }
     return o
 end
 

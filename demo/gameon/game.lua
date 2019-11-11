@@ -19,16 +19,15 @@ function Game:setMap(map)
     self.map = map
 end
 
-function Game:createPlayer(team)
-    assert(self.rules, "No rules set. Call setRules first")
-    local player = Player.new{
-        rules = self.rules,
-        team = team
-    }
+function Game:createPlayer(options)
+    options.game = self
+    local player = Player.new(options)
     table.insert(self.players, player)
-    if not self.currentPlayer then
-        self.currentPlayer = player
-    end
+    return player
+end
+
+function Game:setCurrentPlayer(player)
+    self.currentPlayer = player
 end
 
 function Game:getCurrentPlayer()

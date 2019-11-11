@@ -23,6 +23,12 @@ function Draw.hexagon(cx, cy, size)
 	end
 end
 
+function Draw.cross( p, size )
+    love.graphics.setLineStyle("rough")
+    love.graphics.line(p.x - size, p.y, p.x + size, p.y)
+    love.graphics.line(p.x, p.y - size, p.x, p.y + size)
+end
+
 function Draw.dashline( p1, p2, dash, gap )
     local dy, dx = p2.y - p1.y, p2.x - p1.x
     local an, st = math.atan2( dy, dx ), dash + gap

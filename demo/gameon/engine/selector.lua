@@ -28,6 +28,9 @@ function Selector:collect_selected_units()
     self.selected_units = {}
     local tile_from_tx, tile_from_ty = Game.map:convertPixelToTile(self.drag_from.x, self.drag_from.y)
     local tile_to_tx, tile_to_ty = Game.map:convertPixelToTile(self.drag_to.x, self.drag_to.y)
+    local drag_delta_x = math.abs(self.drag_from.x - self.drag_to.x)
+    local drag_delta_y = math.abs(self.drag_from.y - self.drag_to.y)
+    local select_single = drag_delta_x <= 4 and drag_delta_y <= 4
     if tile_from_tx > tile_to_tx then
         tile_from_tx, tile_to_tx = tile_to_tx, tile_from_tx
     end
@@ -41,10 +44,16 @@ function Selector:collect_selected_units()
                 for _, unit in ipairs(tileInfo.units) do
                     if unit.player == Game.currentPlayer then
                         table.insert(self.selected_units, unit)
+                        if select_single then
+                            break
+                        end
                     end
                 end
             end
         end
+    end
+    for _, unit in ipairs(self.selected_units) do
+        unit:onSelected(true)
     end
 end
 
@@ -60,6 +69,9 @@ function Selector:mappressed(x, y, b)
     self:reset()
     self.drag_from = {x = x, y = y}
     self.drag_to = {x = x, y = y}
+    for _, unit in ipairs(self.selected_units) do
+        unit:onSelected(false)
+    end
     self.selected_units = {}
     return true
 end

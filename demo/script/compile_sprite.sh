@@ -27,11 +27,29 @@ SPRITE_NAME=$(basename "$SRC_DIR")
 TMP_DIR="$DST_DIR/tmp"
 mkdir -p "$TMP_DIR"
 
-# Copy desired actions from source sprite images to temp dir
+# Check if actions are present
+has_action=0
+missing_action=0
 for action in "${ACTIONS[@]}"; do
-    [ -d "$TMP_DIR/$action" ] && rm -f "$TMP_DIR/$action"/*
-    cp -rf "$SRC_DIR/$action" "$TMP_DIR"/
+    [ -d "$SRC_DIR/$action" ] && has_action=1
+    [ -d "$SRC_DIR/$action" ] || missing_action=1
 done
+
+if [ $has_action -eq 1 -a $missing_action -eq 1 ]; then
+  die "Missing some actions are missing from directory $SRC_DIR"
+fi
+
+
+# Copy desired actions from source sprite images to temp dir
+if [ $has_action -eq 1 ]; then
+  for action in "${ACTIONS[@]}"; do
+      [ -d "$TMP_DIR/$action" ] && rm -f "$TMP_DIR/$action"/*
+      cp -rf "$SRC_DIR/$action" "$TMP_DIR"/
+  done
+else
+  # Copy all png files from src directory
+  cp -f "$SRC_DIR"/*.png "$TMP_DIR"/
+fi
 
 # Resize sprite images
 find "$TMP_DIR" -type f -name "*.png" -print0 | while IFS= read -r -d '' file; do
@@ -87,10 +105,13 @@ for action in "${ACTIONS[@]}"; do
     rm -rf "$TMP_DIR/$action"
 done
 
+rm -f "$TMP_DIR"/*.png
+
 # delete free-tex-packer project file
 rm -f "$FREETEXPACKER_PROJECT"
 
 # delete the target temp dir if not empty
 if [ ! $(ls -A "$TMP_DIR") ]; then
-    rmdir "$TMP_DIR"
+  echo "rmdir $TMP_DIR"
+  rmdir "$TMP_DIR"
 fi

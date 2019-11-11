@@ -7,23 +7,15 @@ local Animation = {
 }
 Animation.__index = Animation
 
-function Animation.new(params)
-    params.duration = params.duration or 1
-    params.animtype = params.animtype or Animation.INTERPOLATION
-    local o = setmetatable({
-        animtype = params.animtype,
-        duration = params.duration,
-        varlist = params.varlist,
-        varsto = params.varsto,
-        object = params.object,
-        callback_finished = params.callback_finished,
-        callback_update = params.callback_update,
-        initials = {}
-    }, Animation)
-
+function Animation.new(options)
+    local o = setmetatable(options or {}, Animation)
+    assert(o.duration, "duration attribute is mandatory")
+    o.animtype = o.animtype or Animation.INTERPOLATION
+    o.initials = {}
     for _, varname in ipairs(o.varlist) do
         o.initials[varname] = o.object[varname]
     end
+    o.loops = 0
     return o
 end
 
@@ -40,6 +32,15 @@ function Animation:interpolation(dt)
         end
     end
     self.callback_update(self.object, unpack(varvalues))
+    if finished and self.reversed and self.loops == 0 then
+        self.loops = self.loops + 1
+        finished = false
+        -- swap initials with varsto
+        for _, varname in ipairs(self.varlist) do
+            self.initials[varname], self.varsto[varname] = self.varsto[varname], self.initials[varname]
+        end
+    end
+
     if finished and self.callback_finished then
         self.callback_finished(self.object)
     end
