@@ -6,6 +6,7 @@ local Map = require "gameon.engine.map"
 local Rules = require "gameon.rules"
 local Game = require "gameon.game"
 local Unit = require "gameon.engine.unit"
+local Barbarian = require "gameon.engine.unit.barbarian"
 local Sprite = require "gameon.engine.sprite"
 local DrawableText = require "gameon.engine.drawable.text"
 
@@ -55,13 +56,27 @@ function love.load()
     -- The game will play on a map
     Game:setMap(map)
 
-    local enemy = Unit.new(enemyPlayer, "barbarian2")
-    map:spawnSprite(enemy, 30, 17)
+    -- Create patroling enemies
+    -- local px, py
+    -- local enemy
+    -- for i = 1, 2 do
+    --     for j = 1, 2 do
+    --         enemy = Barbarian.new(enemyPlayer, "barbarian2")
+    --         map:spawnSprite(enemy, 30+i, 17+j)
+    --         px, py = map:convertTileToPixel(35, 22)
+    --         enemy:patrolTo(px, py)
+    --         px, py = map:convertTileToPixel(28, 18)
+    --         enemy:patrolTo(px, py)
 
-    local px, py = map:convertTileToPixel(35, 22)
-    enemy:moveTo(px, py, true)
-    px, py = map:convertTileToPixel(28, 18)
-    enemy:moveTo(px, py, true)
+    --         enemy = Barbarian.new(enemyPlayer, "barbarian2")
+    --         map:spawnSprite(enemy, 30-i, 17-j)
+    --         px, py = map:convertTileToPixel(35, 22)
+    --         enemy:patrolTo(px, py)
+    --         px, py = map:convertTileToPixel(28, 18)
+    --         enemy:patrolTo(px, py)
+    --     end
+    -- end
+
 end
 
 function love.update(dt)

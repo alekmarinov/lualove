@@ -1,8 +1,10 @@
 local Drawable = require "gameon.engine.drawable"
+local Animation = require "gameon.engine.animation"
 
 local DrawableText = setmetatable({
     FONT_SIZE = 10,
-    COLOR = { 1, 1, 1, 1 }
+    COLOR = { 1, 1, 1, 1 },
+    transparency = 1
 }, Drawable)
 DrawableText.__index = DrawableText
 

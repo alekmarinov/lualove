@@ -1,15 +1,6 @@
 --- Paint module for loading and transforming image pixels to player's color
-
+local PLAYER_COLOR = require "gameon.engine.enums".PLAYER_COLOR
 local Paint = {
-    MASK = {
-        RED = {1, 0, 0},
-        GREEN = {0, 1, 0},
-        BLUE = {0, 0, 1},
-        YELLOW = {1, 1, 0},
-        MAGENTA = {1, 0, 1},
-        CYAN = {0, 1, 1},
-        GRAY = {1, 1, 1}
-    },
     COLOR_DETECT_TOLERANCE = 8
 }
 Paint.__index = Paint
@@ -45,7 +36,7 @@ function Paint:create(name, colorname)
         return love.graphics.newImage(imagedata)
     end
 
-    local colormask = assert(Paint.MASK[colorname], "No such color "..colorname)
+    local colormask = assert(PLAYER_COLOR[colorname], "No such color "..colorname)
     assert(self.images[name], "Image "..name.." is not loaded")
 
     print(string.format("Paint:Creating %s as %s", name, colorname))

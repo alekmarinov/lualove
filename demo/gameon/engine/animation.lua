@@ -11,9 +11,9 @@ function Animation.new(options)
     local o = setmetatable(options or {}, Animation)
     assert(o.duration, "duration attribute is mandatory")
     o.animtype = o.animtype or Animation.INTERPOLATION
-    o.initials = {}
-    for _, varname in ipairs(o.varlist) do
-        o.initials[varname] = o.object[varname]
+    o.varsfrom = {}
+    for _, field in ipairs(o.fields) do
+        o.varsfrom[field] = o.object[field]
     end
     o.loops = 0
     return o
@@ -22,22 +22,28 @@ end
 function Animation:interpolation(dt)
     local finished = true
     local varvalues = {}
-    for _, varname in ipairs(self.varlist) do
-        local dx = dt * (self.varsto[varname] - self.initials[varname]) / self.duration
-        if (dx < 0 and self.object[varname] + dx > self.varsto[varname]) or (dx > 0 and self.object[varname] + dx < self.varsto[varname]) then
-            table.insert(varvalues, self.object[varname] + dx)
+    for _, field in ipairs(self.fields) do
+        local dx = dt * (self.varsto[field] - self.varsfrom[field]) / self.duration
+        if (dx < 0 and self.object[field] + dx > self.varsto[field]) or (dx > 0 and self.object[field] + dx < self.varsto[field]) then
+            table.insert(varvalues, self.object[field] + dx)
             finished = false
         else
-            table.insert(varvalues, self.varsto[varname])
+            table.insert(varvalues, self.varsto[field])
         end
     end
-    self.callback_update(self.object, unpack(varvalues))
+    if self.callback_update then
+        self.callback_update(self.object, unpack(varvalues))
+    else
+        for i, field in ipairs(self.fields) do
+            self.object[field] = varvalues[i]
+        end
+    end
     if finished and self.reversed and self.loops == 0 then
         self.loops = self.loops + 1
         finished = false
-        -- swap initials with varsto
-        for _, varname in ipairs(self.varlist) do
-            self.initials[varname], self.varsto[varname] = self.varsto[varname], self.initials[varname]
+        -- swap varsfrom with varsto
+        for _, field in ipairs(self.fields) do
+            self.varsfrom[field], self.varsto[field] = self.varsto[field], self.varsfrom[field]
         end
     end
 

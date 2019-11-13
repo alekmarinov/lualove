@@ -6,11 +6,13 @@ local thispackage = (...):match("(.-)[^%.]+$")
 local pltablex = require "pl.tablex"
 local sti = require "sti"
 local Animation = require (thispackage..".animation")
+local DrawableText = require (thispackage..".drawable.text")
 local AStar = require (thispackage..".algo.astar")
 local HexMap = require (thispackage..".algo.hexmap")
 local SpriteSheet = require (thispackage..".spritesheet")
 local Sprite = require (thispackage..".sprite")
 local Unit = require (thispackage..".unit")
+local Barbarian = require (thispackage..".unit.barbarian")
 local Draw = require (thispackage..".draw")
 local Paint = require (thispackage..".paint")
 local Selector = require (thispackage..".selector")
@@ -33,12 +35,12 @@ function Map.load(params)
     local o = setmetatable({
         spritesheets = {},
         tiles = {},
-        cursor = nil,
         offset_x = 0,
         offset_y = 0,
-        visited_nodes = {},
+        debug_selected_tiles = {},
         drawables = {},
-        cross = nil
+        cross = nil,
+        debug = true
     }, Map)
     o.sti = sti(params.mapfile)
 
@@ -90,49 +92,39 @@ function Map.load(params)
             drawable:draw()
         end
 
-        -- draw cursor
-        if o.show_cursor and o.cursor then
-            local px, py = o.sti:convertTileToPixel(o.cursor.x, o.cursor.y)
-            love.graphics.setColor(o.color_cursor)
-            Draw.hexagon(px, py, o.sti.hexsidelength)
-            love.graphics.printf(string.format("%d %d", o.cursor.x, o.cursor.y), px - o.sti.hexsidelength, py - o.sti.hexsidelength/2, 2 * o.sti.hexsidelength, "center")
-        end
-
         -- draw visited nodes
-        if o.show_visited and #o.visited_nodes > 0 then
-            for _, visited_node in ipairs(o.visited_nodes) do
-                local node = visited_node[1]
-                local cost = visited_node[2]
-                local px, py = o.sti:convertTileToPixel(node.x, node.y)
+        if o.debug and #o.debug_selected_tiles > 0 then
+            for _, tile in ipairs(o.debug_selected_tiles) do
+                local px, py = o.sti:convertTileToPixel(tile.x, tile.y)
                 love.graphics.setColor(1, 0, 0, 1)
                 Draw.hexagon(px, py, o.sti.hexsidelength)
-                love.graphics.setColor(1, 1, 1, 0.8)
-                love.graphics.printf(string.format("%.2f", cost), px - o.sti.hexsidelength, py - o.sti.hexsidelength/2, 2 * o.sti.hexsidelength, "center")
             end
         end
 
         -- draw selected path
-        if o.show_path and o.selected_path_to then
-            for i, node in ipairs(o.selected_path_to) do
+        if o.debug and o.debug_path then
+            for i, node in ipairs(o.debug_path) do
                 local px, py = o.sti:convertTileToPixel(node.x, node.y)
-                love.graphics.setColor(o.color_cursor)
+                love.graphics.setColor(1, 1, 1, 1)
                 Draw.hexagon(px, py, o.sti.hexsidelength)
                 love.graphics.printf(string.format("%d", i), px - o.sti.hexsidelength, py - o.sti.hexsidelength/2, 2 * o.sti.hexsidelength, "center")
             end
         end
 
         -- draw neighbours
-        if o.show_neighbours and o.neighbours then
-            for i, node in ipairs(o.neighbours) do
-                local px, py = o.sti:convertTileToPixel(node.x, node.y)
-                love.graphics.setColor(1, 0, 0, 1)
-                Draw.hexagon(px, py, o.sti.hexsidelength)
-                love.graphics.printf(string.format("%d", i), px - o.sti.hexsidelength, py - o.sti.hexsidelength/2, 2 * o.sti.hexsidelength, "center")
-            end
-        end
+        -- if o.show_neighbours and o.neighbours then
+        --     for i, node in ipairs(o.neighbours) do
+        --         local px, py = o.sti:convertTileToPixel(node.x, node.y)
+        --         love.graphics.setColor(1, 0, 0, 1)
+        --         Draw.hexagon(px, py, o.sti.hexsidelength)
+        --         love.graphics.printf(string.format("%d", i), px - o.sti.hexsidelength, py - o.sti.hexsidelength/2, 2 * o.sti.hexsidelength, "center")
+        --     end
+        -- end
 
-        if o.cross then
-            love.graphics.setColor(o.color_cursor)
+        if o.debug and o.cross then
+            love.graphics.setColor(1, 1, 1, 1)
+            Draw.hexagon(o.cross.x, o.cross.y, o.sti.hexsidelength)
+            love.graphics.setColor(1, 0, 0, 1)
             Draw.cross(o.cross, o.sti.hexsidelength / 2)
         end
 
@@ -142,12 +134,9 @@ function Map.load(params)
     end
 
     o.astar = AStar.new{
-        callback_neighbours = function (node)
-            return o:neighboursIterator(node)
-        end,
         callback_distance = HexMap.offset_distance,
         callback_cost = function(node1, node2)
-            local props = o.sti:getTileProperties("Ground", node2.x, node2.y)
+            local props = o:getTileProperties(node2)
             return tonumber(props.move_points)
         end
     }
@@ -163,52 +152,59 @@ function Map:unreserveTileFromUnit(unit, tile)
     tile.reservedBy = nil
 end
 
+function Map:getTileReservedBy(tile)
+    return tile.reservedBy
+end
+
 function Map:isTileReserved(tile)
     return tile.reservedBy ~= nil
 end
 
-function Map:neighboursIterator(tile)
+function Map:neighboursIterator(unit, tile, callback_is_tile_walkable)
     local nextiter = HexMap.neighbours(tile)
     return function()
         local i, next, tile
         repeat
-            i, next = nextiter()
-            if next then
-                tile = self:getTileAt(next.x, next.y)
-                local props = self:getTileProperties(next.x, next.y)
-                if tonumber(props.move_points) < 0 then
+            i, nx, ny = nextiter()
+            if nx then
+                tile = self:getTileAt(nx, ny)
+                if tile and (not unit:canStepOnTile(tile) or not callback_is_tile_walkable(tile)) then
                     tile = nil
                 end
-                if tile and tile.units and tile.units[1] then
-                    -- surround only friendly units
-                    local unitAtTile = tile.units[1]
-                    if unitAtTile.action == "Idle" then
-                        tile = nil
-                    end
-                end
             end
-        until not next or tile
+        until not nx or tile
         return tile
     end
 end
 
-function Map:findPath(tile1, tile2, excluded, isfast)
-    self.visited_nodes = {}
-    self.selected_path_to = self.astar:find(tile1, tile2, {
-        excluded = excluded,
+function Map:findPath(options)
+    local unit = options.unit
+    local start = options.start
+    local stop =  options.stop
+    local isfast = options.isfast
+    local callback_is_tile_walkable = options.callback_is_tile_walkable
+    
+    print("Map:findPath: ", start.x, start.y, stop.x, stop.y, ", isfast = ", isfast)
+    self.debug_selected_tiles = {}
+    local path = self.astar:find(start, stop, {
+        callback_neighbours = function (node)
+            return self:neighboursIterator(unit, node, callback_is_tile_walkable)
+        end,
         depth_limit = isfast and AStar.DEPTH_LIMIT_FAST or AStar.DEPTH_LIMIT,
-        callback_visited = function (node, cost)
-            table.insert(self.visited_nodes, {node, cost})
-        end}) or {}
-    return self.selected_path_to
-end
-
-function Map:findPathFast(tile1, tile2, excluded)
-    return self:findPath(tile1, tile2, excluded, true)
+        callback_visited = function(next, priority)
+            table.insert(self.debug_selected_tiles, next)
+        end
+    }) or {}
+    if not unit:canStepOnTile(stop) or not callback_is_tile_walkable(stop) then
+        -- remove stop point as it's not walkable
+        table.remove(path)
+    end
+    self.debug_path = path
+    return path
 end
 
 function Map:getTileMovingPoints(tile)
-    local props = self:getTileProperties(tile.x, tile.y)
+    local props = self:getTileProperties(tile)
     return tonumber(props.move_points)
 end
 
@@ -217,12 +213,29 @@ function Map:getUnitAtTile(tile)
 end
 
 function Map:getTileOfUnit(unit)
-    local tile = unit:getCurrentTile()
+    local tile = unit.tile
     tile = tile and tile.units and pltablex.find(tile.units, unit) and tile
     if not tile then
         print("No tile for unit ", unit)
     end
     return tile
+end
+
+function Map:enemiesInRange(unit, range)
+    local center = unit.tile
+
+    return coroutine.wrap(function()
+        for x, y in HexMap.range(center, range) do
+            local tile = self:getTileAt(x, y)
+            if tile and tile.units then
+                for _, aunit in ipairs(tile.units) do
+                    if not unit:isFriendly(aunit) then
+                        coroutine.yield(aunit)
+                    end
+                end
+            end
+        end
+    end)
 end
 
 function Map:getHexSideLength()
@@ -235,8 +248,8 @@ function Map:getTileAt(tx, ty)
     end
 end
 
-function Map:getTileProperties(tx, ty)
-    return self.sti:getTileProperties("Ground", tx, ty)
+function Map:getTileProperties(tile)
+    return self.sti:getTileProperties("Ground", tile.x, tile.y)
 end
 
 function Map:getTileAtPixel(x, y)
@@ -272,37 +285,6 @@ function Map:spawnSprite(sprite, tx, ty)
     sprite:setPos(sprite:getPositionAtTile(self:getTileAt(tx, ty)))
 end
 
-function Map:setcursor(x, y)
-    -- set cursor
-    self.cursor = self.cursor or {}
-    self.cursor.x = x
-    self.cursor.y = y
-
-    -- select the first unit on tile
-    local tile = self:getTileAt(x, y)
-    local unit = tile and tile.units and tile.units[1]
-    if unit then
-        self:selectunit(unit)
-    end
-
-    self.neighbours = {}
-    self.nbidx = self.nbidx or 1
-    for _, next in HexMap.neighbours({x = x, y = y}) do
-        table.insert(self.neighbours, next)
-    end
-end
-
-function Map:unsetcursor()
-    self.cursor = nil
-    self.selected_unit = nil
-    self.visited_nodes = {}
-    self.neighbours = nil
-end
-
-function Map:selectunit(unit)
-    self.selected_unit = unit
-end
-
 function Map:addDrawable(drawable)
     if not pltablex.find(self.drawables, drawable) then
         table.insert(self.drawables, drawable)
@@ -321,12 +303,37 @@ function Map:draw()
     self.sti:draw(self.offset_x, self.offset_y, self.zoom, self.zoom)
 end
 
+function Map:addFloatingTextAtTile(tile, text, color)
+    local x, y = self:convertTileToPixel(tile.x, tile.y)
+    local drtext = DrawableText.new{
+        text = text,
+        color = color,
+        x = x,
+        y = y
+    }
+    drtext.animation = Animation.new{
+        duration = 1,
+        fields = { "y" },
+        varsto = { y = y - self:getHexSideLength() },
+        object = drtext,
+        callback_finished = function()
+            self:removeDrawable(drtext)
+        end
+    }
+    self:addDrawable(drtext)
+end
+
 function Map:update(dt)
     self.sti:update(dt)
 
     -- update sprite animations
     for _, spritesheet in ipairs(self.spritesheets) do
         spritesheet:update(dt)
+    end
+
+    -- update drawable animations
+    for _, drawable in ipairs(self.drawables) do
+        drawable:update(dt)
     end
 
     -- smooth map positioning
@@ -349,7 +356,7 @@ function Map:smoothcentertile(tx, ty)
     local tile_px, tile_py = self.sti:convertTileToPixel(tx, ty)
     self.animation = Animation.new{
         duration = self.scrolltime,
-        varlist = { "offset_x", "offset_y" },
+        fields = { "offset_x", "offset_y" },
         varsto = {
             offset_x = love.graphics.getWidth() / 2 / self.zoom - tile_px,
             offset_y = love.graphics.getHeight() / 2 / self.zoom - tile_py
@@ -374,8 +381,15 @@ function Map:mappressed(x, y, b)
         self.cross.x, self.cross.y = self:convertPixelToTile(x, y)
         local tile = self:getTileAt(self.cross.x, self.cross.y)
         self.cross.x, self.cross.y = self:convertTileToPixel(self.cross.x, self.cross.y)
-        for i, v in pairs(tile) do
-            print(i, v)
+
+        self.debug_selected_tiles = {}
+        if tile then
+            for x, y in HexMap.range(tile, 3) do
+                local tile = self:getTileAt(x, y)
+                if tile then
+                    table.insert(self.debug_selected_tiles, tile)
+                end
+            end
         end
     end
 
@@ -389,31 +403,22 @@ function Map:mappressed(x, y, b)
         -- center the selected tile
         -- self:smoothcentertile(tile_px, tile_py)
     elseif b == 2 then
-        self.selected_path_to = nil
+        self.debug_path = nil
         if #Selector.selected_units > 0 then
-            local tile_x, tile_y = self.sti:convertPixelToTile(x, y)
-            -- self:setcursor(tile_x, tile_y)
-
-            -- -- find path
-            -- local tilestart = self:getTileAt(self.selected_unit.tx, self.selected_unit.ty)
-            -- local tilegoal = self:getTileAt(tile_x, tile_y)
-            -- if tilestart and tilegoal then
-            --      self.visited_nodes = {}
-            --     local path = self.astar:find(tilestart, tilegoal, function (node, cost)
-            --         table.insert(self.visited_nodes, {node, cost})
-            --     end)
-            --     self.selected_path_to = path
-            -- end
-
-            self:setcursor(tile_x, tile_y)
             for _, unit in ipairs(Selector.selected_units) do
                 -- move unit
-                unit:moveTo(x, y, love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift"))
+                if love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then
+                    unit:patrolTo(x, y)
+                elseif love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then
+                    unit:attackTo(x, y)
+                else
+                    unit:moveTo(x, y, Selector.selected_units)
+                end
             end
         end
     elseif b == 3 then
         local tile_x, tile_y = self.sti:convertPixelToTile(x, y)
-        map:spawnSprite(Unit.new(Game.currentPlayer, "barbarian1"), tile_x, tile_y)
+        map:spawnSprite(Barbarian.new(Game.currentPlayer, "barbarian1"), tile_x, tile_y)
     end
 end
 
@@ -460,14 +465,8 @@ function Map:keypressed(key)
         self.offset_x = self.offset_x + self.sti.hexsidelength
     elseif key == "right" then
         self.offset_x = self.offset_x - self.sti.hexsidelength
-    elseif key == "p" then
-            self.show_path = not self.show_path
-    elseif key == "v" then
-        self.show_visited = not self.show_visited
-    elseif key == "n" then
-        self.show_neighbours = not self.show_neighbours
-    elseif key == "c" then
-        self.show_cursor = not self.show_cursor
+    elseif key == "d" then
+        self.debug = not self.debug
     elseif key == "delete" then
         -- delete selected object
         for i = #Selector.selected_units, 1, -1 do

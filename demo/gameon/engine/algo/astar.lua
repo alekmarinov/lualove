@@ -7,7 +7,7 @@ local PriorityQueue = require (thispackage..".priorityqueue")
 local List = require 'pl.List'
 
 local AStar = {
-    DEPTH_LIMIT = 100,
+    DEPTH_LIMIT = 200,
     DEPTH_LIMIT_FAST = 10
 }
 AStar.__index = AStar
@@ -24,6 +24,7 @@ end
 
 function AStar:find(start, goal, options)
     options = options or {}
+    local callback_neighbours = options.callback_neighbours or self.callback_neighbours
     local callback_visited = options.callback_visited
     local excluded = options.excluded or {}
     local depth_limit = options.depth_limit or AStar.DEPTH_LIMIT
@@ -50,13 +51,20 @@ function AStar:find(start, goal, options)
             closest_distance = distance
         end
 
-        -- depth limit
-        depth = depth + 1
-        if distance == 0 or depth == depth_limit then
+        if distance == 0 then
+            break
+        elseif distance == 1 then
+            came_from[goal] = closest
+            closest = goal
             break
         end
 
-        for next in self.callback_neighbours(current) do
+        -- depth limit
+        if depth == depth_limit then
+            break
+        end
+
+        for next in callback_neighbours(current) do
             if not excluded[next] then
                 local new_cost = cost_so_far[current] + self.callback_cost(current, next)
                 if not cost_so_far[next] or new_cost < cost_so_far[next] then
@@ -70,6 +78,8 @@ function AStar:find(start, goal, options)
                 end
             end
         end
+
+        depth = depth + 1
     end
 
     -- retrieve path to the closest tile found
@@ -79,7 +89,6 @@ function AStar:find(start, goal, options)
         path:append(current)
         current = came_from[current]
     end
-    path:append(start)
     path:reverse()
     return path
 end

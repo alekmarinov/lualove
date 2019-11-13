@@ -42,14 +42,10 @@ function Sprite:getPositionAtTile(tile)
     return px, py
 end
 
-function Sprite:getCurrentTile()
-    return self.currentTile
-end
-
 function Sprite:setPos(x, y)
     local frameinfo = self.spriteSheet.frames[self.action]
     local tx, ty = self.map:convertPixelToTile(x + frameinfo.origin_x, y + frameinfo.origin_y)
-    self.currentTile = self.map:getTileAt(tx, ty)   
+    self.tile = self.map:getTileAt(tx, ty)   
     self.x = x
     self.y = y
 end
@@ -69,7 +65,6 @@ function Sprite:update(dt)
     self.current_time = self.current_time + dt
     if self.current_time >= action_duration then
         self.current_time = self.current_time - action_duration
-        self.cycle = self.cycle + 1
     end
     local frame_index = math.floor(self.current_time / action_duration * action_frames_count) % action_frames_count + 1
     if self.frame_index ~= frame_index then
@@ -77,12 +72,20 @@ function Sprite:update(dt)
         force_update = true
     end
     if force_update then
+        local cycled = frame_index < self.frame_index
         self.frame_index = frame_index
         self.spriteSheet:updateSprite(self)
+        if cycled then
+            self:onAnimationFinished(self.cycle)
+            self.cycle = self.cycle + 1
+        end
     end
 end
 
 function Sprite:onFrameChanged(cycle, prevFrame, nextFrame)
+end
+
+function Sprite:onAnimationFinished(cycle)
 end
 
 function Sprite:onSelected(selected)

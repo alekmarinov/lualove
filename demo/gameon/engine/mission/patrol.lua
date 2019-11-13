@@ -1,11 +1,13 @@
 local pltablex = require "pl.tablex"
 local thispackage = (...):match("(.-)[^%.]+$")
 local MissionMove = require (thispackage..".move")
+local MissionAttack = require (thispackage..".attack")
 local Sprite = require "gameon.engine.sprite"
 local DrawableText = require "gameon.engine.drawable.text"
 
 local MissionPatrol = setmetatable({
     _NAME = "MissionPatrol",
+    LOOKUP_RADIUS = 3
 }, MissionMove)
 MissionPatrol.__index = MissionPatrol
 
@@ -37,12 +39,23 @@ function MissionPatrol:togglePatrolTile(tile)
 end
 
 function MissionPatrol:update(dt)
+    -- if self.missionAttack then
+    --     if self.missionAttack:update(dt) then
+    --         self.missionAttack = nil
+    --         self:abort()
+    --         self.completed = false
+
+    --         -- check for other enemies
+    --         self:onMoveStep()
+    --     end
+    --     return 
+    -- end
     if MissionMove.update(self, dt) then
         self.completed = false
         -- move mission finished, go to next patrol tile
         print(self.unit, "Patrol tile "..self.currentPatrolTile.." reached, go to next", #self.patrolTiles)
         if #self.patrolTiles <= 1 then
-            self:abort()
+            self:stop()
             return true
         else
             self.currentPatrolTile = self.currentPatrolTile + 1
@@ -53,6 +66,34 @@ function MissionPatrol:update(dt)
         end
     end
     return false
+end
+
+function MissionPatrol:getEnemyInRange()
+    for enemy in self.unit.map:enemiesInRange(self.unit, MissionPatrol.LOOKUP_RADIUS) do
+        return enemy
+    end
+end
+
+function MissionPatrol:tryAttack()
+    local enemy = self:getEnemyInRange()
+    if enemy then
+        if self.unit:canAttack(enemy) then
+            self.unit:attackUnit(enemy)
+        else
+            self.tileto = enemy.tile
+        end
+        self:stop()
+        return true
+    end
+end
+
+MissionPatrol.onMoveStep = MissionPatrol.tryAttack
+MissionPatrol.onBlocked = MissionPatrol.tryAttack
+
+function MissionPatrol:onFrameChanged(cycle, prevFrame, nextFrame)
+    if self.missionAttack then
+        self.missionAttack:onFrameChanged(cycle, prevFrame, nextFrame)
+    end
 end
 
 function MissionPatrol:abort(completed)

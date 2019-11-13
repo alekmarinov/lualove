@@ -2,7 +2,6 @@
 local thispackage = (...):match("(.-)[^%.]+$")
 local MissionMove = require (thispackage..".move")
 local HexMap = require ("gameon.engine.algo.hexmap")
-local Animation = require "gameon.engine.animation"
 
 local MissionAttack = setmetatable({
     _NAME = "MissionAttack"
@@ -33,18 +32,9 @@ function MissionAttack:update(dt)
         self:abort(true)
         return true
     end
-    local currentTile = self.unit:getCurrentTile()
-    if HexMap.offset_distance(currentTile, self.tileto) == 1 then
-        -- FIXME: Implement method look toward tile
-        local from_x, from_y = self.unit:getPositionAtTile(currentTile)
-        local attack_x, attack_y = self.otherUnit:getPositionAtTile(self.tileto)
-        if from_x ~= attack_x then
-            self.unit.flipped = attack_x < from_x
-        end
-        if self.unit.action ~= "Attacking" then
-            self.unit:setAction("Attacking")
-        end
-    else
+
+    if self.unit.action ~= "Attacking" or HexMap.offset_distance(self.unit.tile, self.tileto) > 1 then
+        -- keep moving to target
         if MissionMove.update(self, dt) then
             -- move mission has been aborted
         end
@@ -52,18 +42,38 @@ function MissionAttack:update(dt)
     return false
 end
 
+function MissionAttack:tryAttack()
+    print("MissionAttack:tryAttack ", HexMap.offset_distance(self.unit.tile, self.tileto))
+    if HexMap.offset_distance(self.unit.tile, self.tileto) == 1 then
+        -- FIXME: Implement method look toward tile
+        local from_x, from_y = self.unit:getPositionAtTile(self.unit.tile)
+        local attack_x, attack_y = self.otherUnit:getPositionAtTile(self.tileto)
+        if from_x ~= attack_x then
+            self.unit.flipped = attack_x < from_x
+        end
+        self.unit:setAction("Attacking")
+        return true
+    end
+end
+
+MissionAttack.onMoveStep = MissionAttack.tryAttack
+MissionAttack.onBlocked = MissionAttack.tryAttack
+
 function MissionAttack:onFrameChanged(cycle, prevFrame, nextFrame)
     if self.unit.action == "Attacking" then
         if not self.attackAtCycle or self.attackAtCycle ~= cycle then
             local attack_hit_frame = self.unit.spriteSheet.frames[self.unit.action].attack_hit_frame
             if prevFrame <= attack_hit_frame and nextFrame >= attack_hit_frame then
                 self.attackAtCycle = cycle
-                -- check if enemy is in range and get some blood
+                -- check if enemy is in range and take some blood
                 local otherUnitTile = self.map:getTileOfUnit(self.otherUnit)
-                if HexMap.offset_distance(self.unit:getCurrentTile(), otherUnitTile) == 1 then
-                    self.otherUnit:hit(self.unit)
-                else
-                    self.otherUnit:miss(self.unit)
+                if otherUnitTile then
+                    -- is the enemy still in range to hit?
+                    if HexMap.offset_distance(self.unit.tile, otherUnitTile) == 1 then
+                        self.otherUnit:hit(self.unit)
+                    else
+                        self.otherUnit:miss(self.unit)
+                    end
                 end
             end
         end

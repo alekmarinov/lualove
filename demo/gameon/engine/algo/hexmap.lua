@@ -24,30 +24,46 @@ function HexMap.neighbours(offset)
         local dir = HexMap.directions[parity][i+1]
         if dir then
             i = i + 1
-            return i, { x = offset.x + dir[1], y = offset.y + dir[2] }
+            return i, offset.x + dir[1], offset.y + dir[2]
         end
     end
 end
 
-function HexMap.offset_to_cube(offset)
-    local x = offset.x
-    local z = offset.y - (offset.x + offset.x % 2) / 2
+function HexMap.offset_to_cube(col, row)
+    local x = col
+    local z = row - (col + col % 2) / 2
     local y = -x-z
-    return {x = x, y = y, z = z}
+    return x, y, z
 end
 
-function HexMap.cube_distance(a, b)
-    return math.max(math.abs(a.x - b.x), math.abs(a.y - b.y), math.abs(a.z - b.z))
+function HexMap.cube_to_offset(x, y, z)
+    return x, z + (x + x % 2) / 2
+end
+
+function HexMap.cube_distance(ax, ay, az, bx, by, bz)
+    return math.max(math.abs(ax - bx), math.abs(ay - by), math.abs(az - bz))
 end
 
 -- https://github.com/peterwittek/somoclu/issues/130
 function HexMap.offset_distance(a, b)
-    -- local dx = a.x - b.x
-    -- local dy = a.y - b.y
-    -- return math.sqrt(dx * dx + dy * dy * 0.75)
-    local ac = HexMap.offset_to_cube(a)
-    local bc = HexMap.offset_to_cube(b)
-    return HexMap.cube_distance(ac, bc)
+    local ax, ay, az = HexMap.offset_to_cube(a.x, a.y)
+    local bx, by, bz = HexMap.offset_to_cube(b.x, b.y)
+    return HexMap.cube_distance(ax, ay, az, bx, by, bz)
+end
+
+function HexMap.range(center, N)
+    local cx, cy, cz = HexMap.offset_to_cube(center.x, center.y)
+
+    return coroutine.wrap(function()
+        for x = -N, N do
+            for y = math.max(-N, -x - N), math.min(N, -x + N) do
+                if x ~= 0 or y ~= 0 then
+                    local z = -x -y
+                    coroutine.yield(HexMap.cube_to_offset(cx + x, cy + y, cz + z))
+                end
+            end
+        end
+    end)
 end
 
 return HexMap
