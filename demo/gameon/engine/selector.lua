@@ -77,10 +77,11 @@ function Selector:mappressed(x, y, b)
 end
 
 function Selector:mapreleased(x, y, b)
-    if self.drag_from and self.drag_from then
+    if self.drag_from and self.drag_to then
         -- check what is selected
         self:collect_selected_units()
         self:reset()
+        return true
     end
 end
 

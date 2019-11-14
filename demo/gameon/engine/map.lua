@@ -17,6 +17,7 @@ local Draw = require (thispackage..".draw")
 local Paint = require (thispackage..".paint")
 local Selector = require (thispackage..".selector")
 local Game = require "gameon.game"
+local PLAYER_COLOR = require (thispackage..".enums").PLAYER_COLOR
 
 --- Base Map table
 -- @table Map
@@ -126,6 +127,8 @@ function Map.load(params)
             Draw.hexagon(o.cross.x, o.cross.y, o.sti.hexsidelength)
             love.graphics.setColor(1, 0, 0, 1)
             Draw.cross(o.cross, o.sti.hexsidelength / 2)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.printf(string.format("%d %d", o.cross.tx, o.cross.ty), o.cross.x - o.sti.hexsidelength, o.cross.y - o.sti.hexsidelength/2, 2 * o.sti.hexsidelength, "center")
         end
 
         Selector:draw()
@@ -184,7 +187,6 @@ function Map:findPath(options)
     local isfast = options.isfast
     local callback_is_tile_walkable = options.callback_is_tile_walkable
     
-    print("Map:findPath: ", start.x, start.y, stop.x, stop.y, ", isfast = ", isfast)
     self.debug_selected_tiles = {}
     local path = self.astar:find(start, stop, {
         callback_neighbours = function (node)
@@ -209,15 +211,12 @@ function Map:getTileMovingPoints(tile)
 end
 
 function Map:getUnitAtTile(tile)
-    return tile.units and tile.units[1]
+    return tile.units and tile.units[1] and tile.units[1]:isAlive() and tile.units[1]
 end
 
 function Map:getTileOfUnit(unit)
     local tile = unit.tile
     tile = tile and tile.units and pltablex.find(tile.units, unit) and tile
-    if not tile then
-        print("No tile for unit ", unit)
-    end
     return tile
 end
 
@@ -229,7 +228,7 @@ function Map:enemiesInRange(unit, range)
             local tile = self:getTileAt(x, y)
             if tile and tile.units then
                 for _, aunit in ipairs(tile.units) do
-                    if not unit:isFriendly(aunit) then
+                    if not unit:isFriendly(aunit) and aunit:isAlive() then
                         coroutine.yield(aunit)
                     end
                 end
@@ -278,11 +277,11 @@ function Map:addUnitToTile(unit, tile)
     table.insert(tile.units, unit)
 end
 
-function Map:spawnSprite(sprite, tx, ty)
+function Map:spawnSprite(sprite, tile)
     sprite.map = self
     local spritesheet = self.spritesheets[sprite.typename]
     spritesheet:createSprite(sprite)
-    sprite:setPos(sprite:getPositionAtTile(self:getTileAt(tx, ty)))
+    sprite:setPos(sprite:getPositionAtTile(tile))
 end
 
 function Map:addDrawable(drawable)
@@ -329,6 +328,11 @@ function Map:update(dt)
     -- update sprite animations
     for _, spritesheet in ipairs(self.spritesheets) do
         spritesheet:update(dt)
+    end
+
+    -- update sprite event boxes
+    for _, spritesheet in ipairs(self.spritesheets) do
+        spritesheet:updateEventBoxes(dt)
     end
 
     -- update drawable animations
@@ -378,9 +382,9 @@ end
 function Map:mappressed(x, y, b)
     if b == 1 then
         self.cross = {}
-        self.cross.x, self.cross.y = self:convertPixelToTile(x, y)
-        local tile = self:getTileAt(self.cross.x, self.cross.y)
-        self.cross.x, self.cross.y = self:convertTileToPixel(self.cross.x, self.cross.y)
+        self.cross.tx, self.cross.ty = self:convertPixelToTile(x, y)
+        local tile = self:getTileAt(self.cross.tx, self.cross.ty)
+        self.cross.x, self.cross.y = self:convertTileToPixel(self.cross.tx, self.cross.ty)
 
         self.debug_selected_tiles = {}
         if tile then
@@ -412,18 +416,30 @@ function Map:mappressed(x, y, b)
                 elseif love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then
                     unit:attackTo(x, y)
                 else
-                    unit:moveTo(x, y, Selector.selected_units)
+                    unit:moveTo(x, y)
                 end
             end
         end
     elseif b == 3 then
         local tile_x, tile_y = self.sti:convertPixelToTile(x, y)
-        map:spawnSprite(Barbarian.new(Game.currentPlayer, "barbarian1"), tile_x, tile_y)
+        map:spawnSprite(Barbarian.new(Game.currentPlayer, "barbarian1"), self:getTileAt(tile_x, tile_y))
     end
 end
 
 function Map:mapreleased(x, y, b)
     if Selector:mapreleased(x, y, b) then
+
+        if self.debug then
+            if #Selector.selected_units == 1 then
+                local unit = Selector.selected_units[1]
+                local text = unit.mission._NAME
+                if unit.mission._NAME == "MissionMove" then
+                    text = text.." "..unit.mission.state._NAME
+                end
+                self:addFloatingTextAtTile(unit.tile, text, PLAYER_COLOR[unit.color])
+            end
+        end
+
         return true
     end
 

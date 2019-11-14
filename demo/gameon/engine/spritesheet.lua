@@ -142,6 +142,17 @@ function SpriteSheet:update(dt)
     end
 end
 
+function SpriteSheet:updateEventBoxes(dt)
+    for color, sprites in pairs(self.sprites) do
+        for i = 1, sprites.max_sprite_index do
+            local sprite = sprites[i]
+            if sprite then
+                sprite.eventBox:update(dt)
+            end
+        end
+    end
+end
+
 --- Draws all sprite instances
 function SpriteSheet:draw()
     for color, batch in pairs(self.batches) do

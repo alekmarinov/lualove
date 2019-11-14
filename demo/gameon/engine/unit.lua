@@ -8,10 +8,8 @@ local Sprite = require (thispackage..".sprite")
 local Animation = require (thispackage..".animation")
 local MissionIdle = require (thispackage..".mission.idle")
 local MissionMove = require (thispackage..".mission.move")
-local MissionAttack = require (thispackage..".mission.attack")
-local MissionPatrol = require (thispackage..".mission.patrol")
 local PLAYER_COLOR = require (thispackage..".enums").PLAYER_COLOR
-local HexMap = require ("gameon.engine.algo.hexmap")
+local HexMap = require "gameon.engine.algo.hexmap"
 
 local Game = require "gameon.game"
 
@@ -30,7 +28,7 @@ function Unit.new(player, typename)
         color = player.color,
         player = player,
         typename = typename,
-        action = "Idle"
+        action = "Idle",
     }, Unit)
     o.mission = MissionIdle.new{unit = o}
     return o
@@ -60,6 +58,7 @@ function Unit:attackUnit(enemy)
     self:setAction("Attacking")
     self.enemy = enemy
     self.attackAtCycle = nil
+    self:lookAtTile(enemy.tile)
 end
 
 function Unit:isNearBy(other)
@@ -92,14 +91,10 @@ function Unit:onFrameChanged(cycle, prevFrame, nextFrame)
             if prevFrame <= attack_hit_frame and nextFrame >= attack_hit_frame then
                 self.attackAtCycle = cycle
                 -- is the enemy still in range to hit?
-                if self:isNearby(self.enemy) then
+                if self:isNearBy(self.enemy) then
                     self.enemy:hit(self)
-                    if self.enemy:isAlive() then
-                        self:setAction("Idle")
-                    end
                 else
                     self.enemy:miss(self)
-                    self:setAction("Idle")
                 end
             end
         end
@@ -109,6 +104,10 @@ end
 function Unit:onAnimationFinished()
     if self.action == "Dying" then
         self:destroy()
+    elseif self.action == "Attacking" then
+        if not self.enemy:isAlive() then
+            self:setAction("Idle")
+        end
     end
 end
 
@@ -138,7 +137,7 @@ function Unit:canStepOnTile(tile)
     return self.map:getTileMovingPoints(tile) >= 0
 end
 
-function Unit:moveTo(x, y, group)
+function Unit:moveTo(x, y)
     self.mission:abort()
     local tileto = self.map:getTileAtPixel(x, y)
     local followUnit = self.map:getUnitAtTile(tileto)
@@ -148,8 +147,7 @@ function Unit:moveTo(x, y, group)
     self.mission = MissionMove.new{
         unit = self,
         followUnit = followUnit,
-        tileto = tileto,
-        group = group
+        tileto = tileto
     }
     -- force showing patroling flag
     self.mission:onSelected(self:isSelected())
@@ -158,29 +156,35 @@ end
 function Unit:patrolTo(x, y)
     local tileto = self.map:getTileAtPixel(x, y)
     if self.mission then
-        if getmetatable(self.mission)._NAME == "MissionPatrol" then
+        if getmetatable(self.mission)._NAME == "MissionMove" then
             self.mission:togglePatrolTile(tileto)
-            return 
+            return
         else
             self.mission:abort()
         end
     end
-    self.mission = MissionPatrol.new(self, tileto)
+    self.mission = MissionMove.new{
+        unit = self,
+        tileto = tileto
+    }
     -- force showing the patrol point
     self.mission:onSelected(self:isSelected())
 end
 
-function Unit:attackTo(x, y)
-
-end
-
-function Unit:destroy()
+function Unit:die()
     self.health = 0
     if self.mission then
         self.mission:abort()
     end
     if self.tile then
         self.map:removeUnitFromTile(self, self.tile)
+    end
+    self:setAction("Dying")
+end
+
+function Unit:destroy()
+    if self.health > 0 then
+        self:die()
     end
     Sprite.destroy(self)
 end
@@ -192,7 +196,7 @@ function Unit:hit(otherUnit)
         self.health = math.max(0, self.health - damage)
         self.map:addFloatingTextAtTile(self.tile, tostring(-damage), PLAYER_COLOR[self.color])
         if self.health == 0 then
-            self:setAction("Dying")
+            self:die()
         end
     end
 end

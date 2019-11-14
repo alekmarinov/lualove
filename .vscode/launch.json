@@ -11,7 +11,7 @@
             "stopOnEntry": true,
             "program": {
                 "lua": "lua5.1",
-                "file": "main.lua"
+                "file": "game.lua"
             },
             "cwd": "${workspaceFolder:game}",
             "env": {

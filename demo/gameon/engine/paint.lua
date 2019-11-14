@@ -29,7 +29,7 @@ end
 function Paint:create(name, colorname)
     -- check if the image is cached
     local cachefile = string.format("cache/%s-%s.png", name, colorname)
-    if love.filesystem.isFile(cachefile) then
+    if love.filesystem.getInfo(cachefile) then
         -- load from cache
         local filedata = love.filesystem.read("data", cachefile)
         imagedata = love.image.newImageData(filedata)

@@ -1,6 +1,10 @@
 --- Sprite base module for all sprites in the game
 -- @module gameon.engine.Sprite
 
+local thispackage = (...):match("(.-)[^%.]+$")
+
+local EventBox = require (thispackage..".eventbox")
+
 --- Base Sprite table
 -- @table Sprite
 local Sprite = {
@@ -19,6 +23,7 @@ function Sprite.new(o)
     assert(o and o.color, "color attribute is mandatory")
     o = setmetatable(o, Sprite)
     o.action = o.action or o.typename
+    o.eventBox = EventBox.new(o)
     return o
 end
 
