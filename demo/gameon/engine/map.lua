@@ -408,21 +408,19 @@ function Map:mappressed(x, y, b)
         -- self:smoothcentertile(tile_px, tile_py)
     elseif b == 2 then
         self.debug_path = nil
-        if #Selector.selected_units > 0 then
-            for _, unit in ipairs(Selector.selected_units) do
-                -- move unit
-                if love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then
-                    unit:patrolTo(x, y)
-                elseif love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then
-                    unit:attackTo(x, y)
-                else
-                    unit:moveTo(x, y)
-                end
+        for unit in Selector:selectedUnits() do
+            -- move unit
+            if love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then
+                unit:patrolTo(x, y)
+            elseif love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then
+                unit:attackTo(x, y)
+            else
+                unit:moveTo(x, y)
             end
         end
     elseif b == 3 then
         local tile_x, tile_y = self.sti:convertPixelToTile(x, y)
-        map:spawnSprite(Barbarian.new(Game.currentPlayer, "barbarian1"), self:getTileAt(tile_x, tile_y))
+        map:spawnSprite(Barbarian.new(Game.currentPlayer, "barbarian2"), self:getTileAt(tile_x, tile_y))
     end
 end
 
@@ -430,8 +428,8 @@ function Map:mapreleased(x, y, b)
     if Selector:mapreleased(x, y, b) then
 
         if self.debug then
-            if #Selector.selected_units == 1 then
-                local unit = Selector.selected_units[1]
+            if Selector:selectedUnitsCount() == 1 then
+                local unit = Selector:selectedUnits()()
                 local text = unit.mission._NAME
                 if unit.mission._NAME == "MissionMove" then
                     text = text.." "..unit.mission.state._NAME
@@ -485,10 +483,8 @@ function Map:keypressed(key)
         self.debug = not self.debug
     elseif key == "delete" then
         -- delete selected object
-        for i = #Selector.selected_units, 1, -1 do
-            local unit = Selector.selected_units[i]
+        for unit in Selector:selectedUnits() do
             unit:destroy()
-            Selector.selected_units[i] = nil
         end
     end
 end

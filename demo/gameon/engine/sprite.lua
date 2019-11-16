@@ -65,7 +65,7 @@ function Sprite:update(dt)
     end
     local force_update = self.last_update_x ~= self.x or self.last_update_y ~= self.y
     self.last_update_x, self.last_update_y = self.x, self.y
-    local action_frames_count = #self.spriteSheet.frames[self.action]
+    local action_frames_count = #assert(self.spriteSheet.frames[self.action], "Action "..self.action.." is undefined")
     local action_duration = self.spriteSheet.frames[self.action].duration
     self.current_time = self.current_time + dt
     if self.current_time >= action_duration then

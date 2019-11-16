@@ -5,9 +5,8 @@
 
 -- imports and locals
 local thispackage = (...):match("(.-)[^%.]+$")
-
+local Util = require "gameon.util"
 local json = require "dkjson"
-local plpath = require "pl.path"
 local Paint = require (thispackage..".paint")
 
 local SpriteSheet = {
@@ -15,7 +14,7 @@ local SpriteSheet = {
 SpriteSheet.__index = SpriteSheet
 
 local function getNameFromFile(jsonfile)
-    return plpath.splitext(plpath.basename(jsonfile))
+    return Util.splitext(Util.basename(jsonfile))
 end
 
 --- Loads spritesheet from file
@@ -36,10 +35,10 @@ function SpriteSheet.load(painter, jsonfile, hexsidelength)
     local info = json.decode(jsonstr)
     o.name = getNameFromFile(jsonfile)
 
-    local image = painter:load(o.name, plpath.join(plpath.dirname(jsonfile), info.meta.image))
+    local image = painter:load(o.name, Util.join(Util.dirname(jsonfile), info.meta.image))
 
     for framename, frameinfo in pairs(info.frames) do
-        local _, action_name_index = plpath.splitpath(framename)
+        local _, action_name_index = Util.splitpath(framename)
         local frame_index = action_name_index:match(".*_(.*)")
         frame_index = 1 + tonumber(frame_index)
         local action_name = action_name_index:match("(.*)_.*")

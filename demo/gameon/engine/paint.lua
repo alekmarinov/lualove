@@ -29,6 +29,7 @@ end
 function Paint:create(name, colorname)
     -- check if the image is cached
     local cachefile = string.format("cache/%s-%s.png", name, colorname)
+    local imagedata
     if love.filesystem.getInfo(cachefile) then
         -- load from cache
         local filedata = love.filesystem.read("data", cachefile)
@@ -40,7 +41,7 @@ function Paint:create(name, colorname)
     assert(self.images[name], "Image "..name.." is not loaded")
 
     print(string.format("Paint:Creating %s as %s", name, colorname))
-    local imagedata = love.image.newImageData(self.images[name]:getWidth(), self.images[name]:getHeight())
+    imagedata = love.image.newImageData(self.images[name]:getWidth(), self.images[name]:getHeight())
     for i = 0, imagedata:getWidth() - 1 do
         for j = 0, imagedata:getHeight() - 1 do
             local r, g, b, a = self.images[name]:getPixel(i, j)

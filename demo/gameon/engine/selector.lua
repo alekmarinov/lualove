@@ -3,7 +3,8 @@
 
 local thispackage = (...):match("(.-)[^%.]+$")
 local Draw = require (thispackage..".draw")
-local Game = require ("gameon.game")
+local Cursor = require "gameon.engine.cursor"
+local Game = require "gameon.game"
 
 --- Base Selector table
 -- @table Selector
@@ -22,10 +23,24 @@ local Selector = {
 }
 Selector.__index = Selector
 
+function Selector:selectedUnitsCount()
+    return #self.selected_units
+end
+
+function Selector:selectedUnits()
+        return coroutine.wrap(function()
+        for i = 1, #self.selected_units do
+            if self.selected_units[i]:isAlive() then
+                coroutine.yield(self.selected_units[i])
+            end
+        end
+    end)
+end
+
 function Selector:collect_selected_units()
     assert(self.drag_from, "Missing selected area")
 
-    self.selected_units = {}
+    self:clear_selection()
     local tile_from_tx, tile_from_ty = Game.map:convertPixelToTile(self.drag_from.x, self.drag_from.y)
     local tile_to_tx, tile_to_ty = Game.map:convertPixelToTile(self.drag_to.x, self.drag_to.y)
     local drag_delta_x = math.abs(self.drag_from.x - self.drag_to.x)
@@ -44,6 +59,7 @@ function Selector:collect_selected_units()
                 for _, unit in ipairs(tileInfo.units) do
                     if unit.player == Game.currentPlayer then
                         table.insert(self.selected_units, unit)
+                        unit.eventBox:registerListener("die", self)
                         if select_single then
                             break
                         end
@@ -54,6 +70,24 @@ function Selector:collect_selected_units()
     end
     for _, unit in ipairs(self.selected_units) do
         unit:onSelected(true)
+    end
+end
+
+function Selector:onEvent(unit, eventName)
+    assert(eventName == "die", "Unexpected event name "..eventName)
+    for i = 1, #self.selected_units do
+        if self.selected_units[i] == unit then
+            table.remove(self.selected_units, i)
+            return
+        end
+    end
+    assert(nil, "Can't find unit in selected_units")
+end
+
+function Selector:clear_selection()
+    for i = 1, #self.selected_units do
+        self.selected_units[i].eventBox:removeListener(self)
+        self.selected_units[i] = nil
     end
 end
 
@@ -72,7 +106,7 @@ function Selector:mappressed(x, y, b)
     for _, unit in ipairs(self.selected_units) do
         unit:onSelected(false)
     end
-    self.selected_units = {}
+    self:clear_selection()
     return true
 end
 
@@ -89,6 +123,25 @@ function Selector:mapmoved(x, y, dx, dy, istouch)
     if self.drag_from then
         self.drag_to.x = x
         self.drag_to.y = y
+    else
+        if #self.selected_units > 0 then
+            local tile = Game.map:getTileAtPixel(x, y)
+            local unitAtTile = Game.map:getUnitAtTile(tile)
+            if unitAtTile then
+                if #self.selected_units == 1 and self.selected_units[1] == unitAtTile then
+                    -- no need a single unit to protect itself
+                    Cursor:setArrow()
+                else
+                    if unitAtTile.player.team == Game.currentPlayer.team then
+                        Cursor:setProtect()
+                    else
+                        Cursor:setAttack()
+                    end
+                end
+            else
+                Cursor:setArrow()
+            end
+        end
     end
 end
 

@@ -35,6 +35,7 @@ function Unit.new(player, typename)
 end
 
 function Unit:setPos(x, y)
+    assert(self:isAlive(), "Can't setPos death unit")
     local previousTile = self.tile
     Sprite.setPos(self, x, y)
     if previousTile ~= self.tile then
@@ -55,6 +56,7 @@ function Unit:setMission(mission)
 end
 
 function Unit:attackUnit(enemy)
+    assert(self:isAlive(), "Can't attackUnit death unit")
     self:setAction("Attacking")
     self.enemy = enemy
     self.attackAtCycle = nil
@@ -77,11 +79,15 @@ function Unit:setAction(action)
     if action ~= "Attacking" then
         self.enemy = nil
     end
+
+    assert(self.health > 0 or self.action == "Dying", "Invalid action "..self.action.." with health = "..self.health)
 end
 
 function Unit:stop()
-    self:setMission(MissionIdle.new{ unit = self })
-    self:setAction("Idle")
+    if self:isAlive() then
+        self:setMission(MissionIdle.new{ unit = self })
+        self:setAction("Idle")
+    end
 end
 
 function Unit:onFrameChanged(cycle, prevFrame, nextFrame)
@@ -119,6 +125,8 @@ function Unit:update(dt)
     Sprite.update(self, dt)
     if self:isAlive() then
         self.mission:update(dt)
+    else
+        assert(self.action == "Dying", "Not alive can't be in other action than Dying")
     end
 end
 
@@ -138,48 +146,48 @@ function Unit:canStepOnTile(tile)
 end
 
 function Unit:moveTo(x, y)
-    self.mission:abort()
+    assert(self:isAlive(), "Can't moveTo death unit")
+
     local tileto = self.map:getTileAtPixel(x, y)
     local followUnit = self.map:getUnitAtTile(tileto)
     if followUnit then
         tileto = nil
     end
-    self.mission = MissionMove.new{
+    self:setMission(MissionMove.new{
         unit = self,
         followUnit = followUnit,
         tileto = tileto
-    }
+    })
     -- force showing patroling flag
     self.mission:onSelected(self:isSelected())
 end
 
 function Unit:patrolTo(x, y)
+    assert(self:isAlive(), "Can't patrolTo death unit")
+
     local tileto = self.map:getTileAtPixel(x, y)
-    if self.mission then
-        if getmetatable(self.mission)._NAME == "MissionMove" then
-            self.mission:togglePatrolTile(tileto)
-            return
-        else
-            self.mission:abort()
-        end
+    if getmetatable(self.mission)._NAME == "MissionMove" then
+        self.mission:togglePatrolTile(tileto)
+        return
     end
-    self.mission = MissionMove.new{
+    self:setMission(MissionMove.new{
         unit = self,
         tileto = tileto
-    }
+    })
     -- force showing the patrol point
     self.mission:onSelected(self:isSelected())
 end
 
 function Unit:die()
+    self.mission:abort()
+    self.mission = nil
     self.health = 0
-    if self.mission then
-        self.mission:abort()
-    end
+    self:setAction("Dying")
+    self:stop()
     if self.tile then
         self.map:removeUnitFromTile(self, self.tile)
     end
-    self:setAction("Dying")
+    self.eventBox:triggerEvent("die")
 end
 
 function Unit:destroy()
@@ -191,18 +199,18 @@ end
 
 -- this unit has been hit by another unit
 function Unit:hit(otherUnit)
-    if self:isAlive() then
-        local damage = math.max(0, otherUnit.attack - self.shield)
-        self.health = math.max(0, self.health - damage)
-        self.map:addFloatingTextAtTile(self.tile, tostring(-damage), PLAYER_COLOR[self.color])
-        if self.health == 0 then
-            self:die()
-        end
+    assert(self:isAlive(), "Can't hit death unit")
+    local damage = math.max(0, otherUnit.attack - self.shield)
+    self.health = math.max(0, self.health - damage)
+    self.map:addFloatingTextAtTile(self.tile, tostring(-damage), PLAYER_COLOR[self.color])
+    if self.health == 0 then
+        self:die()
     end
 end
 
 -- this unit has been attempted to be hit but missed
 function Unit:miss(otherUnit)
+    assert(self:isAlive(), "Can't miss death unit")
     self.map:addFloatingTextAtTile(self.tile, "miss", PLAYER_COLOR[self.color])
 end
 

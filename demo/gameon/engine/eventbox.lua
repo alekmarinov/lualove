@@ -33,7 +33,7 @@ end
 
 function EventBox:triggerEvent(eventName, options)
     self.triggered[eventName] = self.triggered[eventName] or {}
-    self.triggered[eventName] = options
+    self.triggered[eventName] = options or {}
 end
 
 function EventBox:update(dt)

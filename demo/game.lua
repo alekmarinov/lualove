@@ -2,6 +2,7 @@ if not love then
     love = require "love-portable"
 end
 
+local Cursor = require "gameon.engine.cursor"
 local Map = require "gameon.engine.map"
 local Rules = require "gameon.rules"
 local Game = require "gameon.game"
@@ -11,7 +12,7 @@ local Sprite = require "gameon.engine.sprite"
 local DrawableText = require "gameon.engine.drawable.text"
 local Waiter = require "gameon.engine.waiter"
 
-love.window.setMode(1920, 1080, { fullscreen = true })
+-- love.window.setMode(1920, 1080, { fullscreen = true })
 
 local time_multiplier = 1
 
@@ -21,6 +22,10 @@ function love.load()
     local music = love.audio.newSource( 'assets/music/Music 01.ogg', 'stream' )
     music:setLooping(true)
     music:play()
+
+    Cursor:load("assets/cursor")
+
+    Cursor:setArrow()
 
     love.filesystem.setIdentity("game")
     love.keyboard.setKeyRepeat(true)
@@ -53,8 +58,8 @@ function love.load()
     map = Map.load{
         mapfile = "assets/map/island.lua",
         spritesheets = {
-            ["assets/sprite/barbarian1.json"] = { "BLUE" },
-            ["assets/sprite/barbarian2.json"] = { "RED" },
+            ["assets/sprite/barbarian2.json"] = { "BLUE" },
+            ["assets/sprite/barbarian1.json"] = { "RED" },
             ["assets/sprite/flag.json"] = { "BLUE", "RED" }
         }
     }
@@ -71,7 +76,7 @@ function love.load()
             self:reset()
         
             -- spawn enemy
-            local enemy = Barbarian.new(currentPlayer, "barbarian1")
+            local enemy = Barbarian.new(currentPlayer, "barbarian2")
             map:spawnSprite(enemy, patrol_from)
             local px, py = map:convertTileToPixel(patrol_to.x, patrol_to.y)
             enemy:patrolTo(px, py)
@@ -79,7 +84,7 @@ function love.load()
             enemy:patrolTo(px, py)
 
             -- spawn friend
-            local friend = Barbarian.new(enemyPlayer, "barbarian2")
+            local friend = Barbarian.new(enemyPlayer, "barbarian1")
             map:spawnSprite(friend, patrol_to)
             local px, py = map:convertTileToPixel(patrol_from.x, patrol_from.y)
             friend:patrolTo(px, py)
