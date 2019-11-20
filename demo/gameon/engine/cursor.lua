@@ -16,6 +16,7 @@ function Cursor:load(cursorsdir)
         local imagename = Util.join(cursorsdir, config.file)
         self.cursor[cursorname] = love.mouse.newCursor(imagename, config.x, config.y)
     end
+    self:setArrow()
 end
 
 function Cursor:setArrow()

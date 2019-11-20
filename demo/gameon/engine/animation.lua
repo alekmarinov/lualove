@@ -32,7 +32,7 @@ function Animation:interpolation(dt)
         end
     end
     if self.callback_update then
-        self.callback_update(self.object, unpack(varvalues))
+        self.callback_update(self, unpack(varvalues))
     else
         for i, field in ipairs(self.fields) do
             self.object[field] = varvalues[i]
@@ -48,7 +48,7 @@ function Animation:interpolation(dt)
     end
 
     if finished and self.callback_finished then
-        self.callback_finished(self.object)
+        self.callback_finished(self)
     end
     return finished
 end

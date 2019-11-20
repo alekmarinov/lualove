@@ -1,39 +1,60 @@
+SCRIPTS_DIR=script
 
-SCRIPTS_DIR=./script
-
-ASSETS_SOURCE_DIR=./assets/source
-ASSETS_TARGET_DIR=./assets
+ASSETS_SOURCE_DIR=assets/source
+ASSETS_TARGET_DIR=assets
 
 SPRITES_SOURCE_DIR=$(ASSETS_SOURCE_DIR)/sprite
 SPRITES_TARGET_DIR=$(ASSETS_TARGET_DIR)/sprite
 
 COMPILE_SPRITE=$(SCRIPTS_DIR)/compile_sprite.sh -o $(SPRITES_TARGET_DIR)
 
+SPRITE_HEIGHT=30
+HORSEMAN_SPRITE_HEIGHT=40
+
 ICONS=\
 	$(SPRITES_TARGET_DIR)/flag.json
 
-SPEARMAN=\
-	$(SPRITES_TARGET_DIR)/spearman.json
+UNITS=\
+	$(SPRITES_TARGET_DIR)/archer.json \
+	$(SPRITES_TARGET_DIR)/doctor.json \
+	$(SPRITES_TARGET_DIR)/horseman.json \
+	$(SPRITES_TARGET_DIR)/spearman.json \
+	$(SPRITES_TARGET_DIR)/swordsman.json \
+	$(SPRITES_TARGET_DIR)/wizard.json
 
-BARBARIANS=\
-	$(SPRITES_TARGET_DIR)/barbarian1.json \
-	$(SPRITES_TARGET_DIR)/barbarian2.json \
-	$(SPRITES_TARGET_DIR)/barbarian3.json
+# BARBARIANS=\
+# 	$(SPRITES_TARGET_DIR)/barbarian1.json \
+# 	$(SPRITES_TARGET_DIR)/barbarian2.json \
+# 	$(SPRITES_TARGET_DIR)/barbarian3.json
 
-compile_sprites: $(ICONS) $(BARBARIANS) $(SPEARMAN)
-
+compile_sprites: $(ICONS) $(UNITS)
 
 $(SPRITES_TARGET_DIR)/flag.json: $(SPRITES_SOURCE_DIR)/flag
-	$(COMPILE_SPRITE) $<
+	$(COMPILE_SPRITE) --height $(SPRITE_HEIGHT) $<
 
-$(SPRITES_TARGET_DIR)/barbarian1.json: $(SPRITES_SOURCE_DIR)/barbarian1
-	$(COMPILE_SPRITE) $<
+# $(SPRITES_TARGET_DIR)/barbarian1.json: $(SPRITES_SOURCE_DIR)/barbarian1
+# 	$(COMPILE_SPRITE) $<
 
-$(SPRITES_TARGET_DIR)/barbarian2.json: $(SPRITES_SOURCE_DIR)/barbarian2
-	$(COMPILE_SPRITE) $<
+# $(SPRITES_TARGET_DIR)/barbarian2.json: $(SPRITES_SOURCE_DIR)/barbarian2
+# 	$(COMPILE_SPRITE) $<
 
-$(SPRITES_TARGET_DIR)/barbarian3.json: $(SPRITES_SOURCE_DIR)/barbarian3
-	$(COMPILE_SPRITE) $<
+# $(SPRITES_TARGET_DIR)/barbarian3.json: $(SPRITES_SOURCE_DIR)/barbarian3
+# 	$(COMPILE_SPRITE) $<
+
+$(SPRITES_TARGET_DIR)/archer.json: $(SPRITES_SOURCE_DIR)/archer
+	$(COMPILE_SPRITE) --normalize --height $(SPRITE_HEIGHT) --flop $<
+
+$(SPRITES_TARGET_DIR)/doctor.json: $(SPRITES_SOURCE_DIR)/doctor
+	$(COMPILE_SPRITE) --normalize --height $(SPRITE_HEIGHT) --flop $<
+
+$(SPRITES_TARGET_DIR)/horseman.json: $(SPRITES_SOURCE_DIR)/horseman
+	$(COMPILE_SPRITE) --normalize --height $(HORSEMAN_SPRITE_HEIGHT) --flop $<
 
 $(SPRITES_TARGET_DIR)/spearman.json: $(SPRITES_SOURCE_DIR)/spearman
-	$(COMPILE_SPRITE) $<
+	$(COMPILE_SPRITE) --normalize --height $(SPRITE_HEIGHT) --flop $<
+
+$(SPRITES_TARGET_DIR)/swordsman.json: $(SPRITES_SOURCE_DIR)/swordsman
+	$(COMPILE_SPRITE) --normalize --height $(SPRITE_HEIGHT) --flop $<
+
+$(SPRITES_TARGET_DIR)/wizard.json: $(SPRITES_SOURCE_DIR)/wizard
+	$(COMPILE_SPRITE) --normalize --height $(SPRITE_HEIGHT) --flop $<

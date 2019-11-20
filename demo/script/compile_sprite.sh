@@ -1,22 +1,74 @@
-SPRITE_WIDTH=50
-ACTIONS=("Attacking" "Dying" "Hurt" "Idle" "Idle Blink" "Taunt" "Walking")
+#!/bin/bash
+
+# SPRITE_WIDTH=50
+SPRITE_HEIGHT=32
+ACTIONS=("Attacking" "Dying" "Idle" "Walking")
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SCRIPT_NAME=$(basename $0)
 
 die() {
-    echo "$1"
+    echo "$SCRIPT_NAME: $1"
     exit 1
 }
 
-SRC_DIR="$1"
-DST_DIR="$2"
+usage() {
+    cat <<EOF
+Compiles sprite sheet from directory with animation frame images
+Usage: $SCRIPT_NAME [--flop] [--normalize] [--width WIDTH] [--height HEIGHT] -o <DST_DIR> SRC_DIR
+Where:
+    SRC_DIR         - Directory with *.png images or multiple directories with *.png image into each
+    DST_DIR         - Directory where to store the output spritesheet png image and json description
+    --normalize     - Normalize the image to its bounding box
+    --width WIDTH   - The desired sprite width
+    --height HEIGHT - The desired sprite height
+    --flop          - Flip sprite horizontally
+EOF
+    die "$1"
+}
+
+flop=0
+width=0
+height=0
+normalize=0
+while [ "$1" != "" ]; do
+    case $1 in
+        --normalize)
+          normalize=1
+        ;;
+        --width)
+          shift
+          width=$1
+        ;;
+        --height)
+          shift
+          height=$1
+        ;;
+        --flop)
+          flop=1
+        ;;
+        -o|--output)
+            shift
+            DST_DIR="$1"
+        ;;
+        *)
+            [ -z "$SRC_DIR" ] || usage "Unexpected argument $1"
+            SRC_DIR="$1"
+        ;;
+    esac
+    shift
+done
 
 if [ "$SRC_DIR" == "" ]; then
-    die "Source directory argument 1 is mendatory"
+    usage "Missing expected SRC_DIR"
 fi
 
 if [ "$DST_DIR" == "" ]; then
-    die "Destination directory argument 2 is mendatory"
+    usage "Missing expected DST_DIR"
+fi
+
+if [ $width -eq 0 -a  $height -eq 0 ]; then
+    usage "Either width or height must be non zero"
 fi
 
 SRC_DIR=${SRC_DIR%/}
@@ -36,9 +88,8 @@ for action in "${ACTIONS[@]}"; do
 done
 
 if [ $has_action -eq 1 -a $missing_action -eq 1 ]; then
-  die "Missing some actions are missing from directory $SRC_DIR"
+  die "Some actions are missing from directory $SRC_DIR"
 fi
-
 
 # Copy desired actions from source sprite images to temp dir
 if [ $has_action -eq 1 ]; then
@@ -51,9 +102,24 @@ else
   cp -f "$SRC_DIR"/*.png "$TMP_DIR"/
 fi
 
+# Normalize images to a common bounding box
+if [ $normalize -eq 1 ]; then
+  lua $SCRIPT_DIR/bounding_box.lua "$TMP_DIR"
+fi
+
 # Resize sprite images
 find "$TMP_DIR" -type f -name "*.png" -print0 | while IFS= read -r -d '' file; do
-    mogrify -resize $SPRITE_WIDTH "$file"
+  if [ $flop -eq 1 ]; then
+    mogrify -flop "$file"
+  fi
+  RESIZE=""
+  if [ $width -gt 0 ]; then
+    RESIZE="$RESIZE"
+  fi
+  if [ $height -gt 0 ]; then
+    RESIZE="${RESIZE}x$height"
+  fi
+  (set -x; mogrify -resize "$RESIZE" "$file")
 done
 
 FREETEXPACKER_PROJECT="$TMP_DIR/$SPRITE_NAME.ftpp"
@@ -111,7 +177,6 @@ rm -f "$TMP_DIR"/*.png
 rm -f "$FREETEXPACKER_PROJECT"
 
 # delete the target temp dir if not empty
-if [ ! $(ls -A "$TMP_DIR") ]; then
-  echo "rmdir $TMP_DIR"
+if [ ! "$(ls -A $TMP_DIR)" ]; then
   rmdir "$TMP_DIR"
 fi

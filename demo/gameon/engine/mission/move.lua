@@ -1,15 +1,16 @@
 local pltablex = require "pl.tablex"
 local thispackage = (...):match("(.-)[^%.]+$")
 local MissionBase = require (thispackage..".base")
+local Game = require "gameon.game"
 local Animation = require "gameon.engine.animation"
 local Waiter = require "gameon.engine.waiter"
 local Sprite = require "gameon.engine.sprite"
 local DrawableText = require "gameon.engine.drawable.text"
-local PLAYER_COLOR = require "gameon.engine.enums".PLAYER_COLOR
 
 local MissionMove = setmetatable({
     _NAME = "MissionMove",
-    moveprops = { "x", "y" },
+    moveprops = { "x", "y", "opacity" },
+    xyprops = { "x", "y" },
     WAIT_TIME = 1
 }, MissionBase)
 MissionMove.__index = MissionMove
@@ -107,10 +108,12 @@ function StateMove:next()
         return 
     end
 
-    if self.map:enemiesInRange(self.unit, 1)() then
-        self.mission:setState(StateFight)
-        self.mission.state:next()
-        return
+    if self.mission.attacking then
+        if self.map:enemiesInRange(self.unit, 1)() then
+            self.mission:setState(StateFight)
+            self.mission.state:next()
+            return
+        end
     end
 
     self.mission:moveToTile(self.path[1], function()
@@ -124,10 +127,12 @@ function StateBlock.new(options)
     return setmetatable(State.new(options), StateBlock)
 end
 function StateBlock:next()
-    if self.map:enemiesInRange(self.unit, 1)() then
-        self.mission:setState(StateFight)
-        self.mission.state:next()
-        return
+    if self.mission.attacking then
+        if self.map:enemiesInRange(self.unit)() then
+            self.mission:setState(StateFight)
+            self.mission.state:next()
+            return
+        end
     end
 
     local path = self.mission:findPath(MissionMove.checkNoUnitsOnTile)
@@ -135,6 +140,12 @@ function StateBlock:next()
         self.mission:setState(StateMove, {path = path})
         self.mission.state:next()
         return 
+    end
+
+    if self.mission.followUnit and not self.unit:isFriendly(self.mission.followUnit) and self.unit:isNearBy(self.mission.followUnit) then
+        self.mission:setState(StateFight)
+        self.mission.state:next()
+        return
     end
 
     -- wait until unblocked
@@ -148,7 +159,12 @@ function StateFight.new(options)
 end
 
 function StateFight:next()
-    local enemy = self.map:enemiesInRange(self.unit, 1)()
+    local enemy
+    if self.mission.followUnit and not self.unit:isFriendly(self.mission.followUnit) and self.unit:isNearBy(self.mission.followUnit) then
+        enemy = self.mission.followUnit
+    else
+        enemy = self.map:enemiesInRange(self.unit)()
+    end
     if not enemy then
         self.mission:setState(StateBlock)
         self.mission.state:next()
@@ -162,8 +178,14 @@ function StateFight:next()
     end
 end
 
-function MissionMove.animationCallbackUpdate(unit, x, y)
+function MissionMove.animationCallbackUpdate(animation, x, y, opacity)
+    local unit = animation.object
     unit:setPos(x, y)
+    if not unit.lock_opacity then
+        unit.opacity = opacity
+    else
+        animation.fields = MissionMove.xyprops
+    end
 end
 
 function MissionMove.new(options)
@@ -179,21 +201,6 @@ function MissionMove.new(options)
     return o
 end
 
-function MissionMove:setState(stateClass, options)
-    options = options or {}
-    options.mission = self
-    options.unit = self.unit
-    options.map = self.map
-    local state = stateClass.new(options)
-    if self.state then
-        if self.map.debug then
-            self.map:addFloatingTextAtTile(self.unit.tile, state._NAME, PLAYER_COLOR[self.color])
-        end
-        self.state:cancel()
-    end
-    self.state = state
-end
-
 function MissionMove:reserveTile(tile)
     self:unreserveTile()
     self.reservedTile = tile
@@ -207,38 +214,32 @@ function MissionMove:unreserveTile()
     end
 end
 
-function MissionMove:update(dt)
-    if self.worker then
-        self.worker:update(dt)
-    end
-end
-
 function MissionMove:moveToTile(tile, callback)
     self.unit:lookAtTile(tile)
     self:reserveTile(tile)
     self.moveto.x, self.moveto.y = self.unit:getPositionAtTile(tile)
+    if not self.unit:isAllied() then
+        if not tile.visibility or tile.visibility == 0 then
+            -- fade unit to invisible
+            self.moveto.opacity = 1
+        else
+            -- fade unit to visible
+            self.moveto.opacity = 0
+        end
+    end
     if self.unit.action ~= "Walking" then
         self.unit:setAction("Walking")
     end
+    self.unit:lockOpacity(false)
     self.worker = Animation.new{
         duration = self.map:getTileMovingPoints(tile) * self.unit.speed,
-        fields = self.moveprops,
+        fields = self.unit:isAllied() and self.xyprops or self.moveprops,
         varsto = self.moveto,
         object = self.unit,
         callback_update = MissionMove.animationCallbackUpdate,
         callback_finished = function()
             self.worker = nil
             self:unreserveTile()
-            callback()
-        end
-    }
-end
-
-function MissionMove:wait(time, callback)
-    self.worker = Waiter.new{
-        duration = MissionMove.WAIT_TIME,
-        callback_finished = function()
-            self.worker = nil
             callback()
         end
     }
@@ -283,7 +284,7 @@ function MissionMove:findPath(callback_walkable, isfast)
 end
 
 function MissionMove:abort()
-    self.worker = nil
+    MissionBase.abort(self)
     self:setState(StateStop)
     self:unreserveTile()
     self:showHideFlags(false)
@@ -329,7 +330,7 @@ function MissionMove:showHideFlags(showing)
             for i, tile in ipairs(self.tiles) do
                 local flag = Sprite.new{
                     color = self.unit.color,
-                    typename = "flag"
+                    type = "flag"
                 }
                 self.unit.map:spawnSprite(flag, tile)
                 table.insert(self.flagSprites, flag)

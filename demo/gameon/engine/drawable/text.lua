@@ -1,5 +1,4 @@
 local Drawable = require "gameon.engine.drawable"
-local Animation = require "gameon.engine.animation"
 
 local DrawableText = setmetatable({
     FONT_SIZE = 10,
@@ -20,6 +19,7 @@ end
 function DrawableText:draw()
     love.graphics.setColor(self.color)
     love.graphics.draw(self.textDrawable, self.x - self.textDrawable:getWidth() / 2, self.y - self.textDrawable:getHeight() / 2)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return DrawableText

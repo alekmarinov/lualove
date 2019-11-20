@@ -12,29 +12,41 @@ local HexMap = require (thispackage..".algo.hexmap")
 local SpriteSheet = require (thispackage..".spritesheet")
 local Sprite = require (thispackage..".sprite")
 local Unit = require (thispackage..".unit")
-local Barbarian = require (thispackage..".unit.barbarian")
 local Draw = require (thispackage..".draw")
 local Paint = require (thispackage..".paint")
 local Selector = require (thispackage..".selector")
 local Game = require "gameon.game"
 local PLAYER_COLOR = require (thispackage..".enums").PLAYER_COLOR
 
+local Archer = require (thispackage..".unit.archer")
+local Doctor = require (thispackage..".unit.doctor")
+local Horseman = require (thispackage..".unit.horseman")
+local Spearman = require (thispackage..".unit.spearman")
+local Swordsman = require (thispackage..".unit.swordsman")
+local Wizard = require (thispackage..".unit.wizard")
+
 --- Base Map table
 -- @table Map
 local Map = {
-    color_background = {0.25, 0.25, 0.75, 1},
+    color_background = {0, 0, 0, 1},
     color_cursor = {1, 1, 1, 1},
     zoom_step = 0.1,
     offset_x = 0,
     offset_y = 0,
     zoom = 1,
-    scrolltime = 0.5
+    scrolltime = 0.5,
+    visibility_masks = {
+        visible = {1, 1, 1, 1},
+        invisible = {0, 0, 0, 1},
+        semivisible = {0.7, 0.7, 0.7, 1},
+    }
 }
 Map.__index = Map
 
 function Map.load(params)
     local o = setmetatable({
         spritesheets = {},
+        images = {},
         tiles = {},
         offset_x = 0,
         offset_y = 0,
@@ -45,6 +57,7 @@ function Map.load(params)
     }, Map)
     o.sti = sti(params.mapfile)
 
+    -- create map tiles
     for j = 1, o.sti.layers["Ground"].height do
         o.tiles[j] = {}
         for i = 1, o.sti.layers["Ground"].width do
@@ -52,10 +65,11 @@ function Map.load(params)
                 x = i,
                 y = j
             }
+            o:setTileVisibility(j, i, "invisible")
         end
     end
-    local layer = o.sti:addCustomLayer("Sprites", 2)
 
+    -- create spritesheets
     local paint = Paint.new()
     for spritesheetfile, colors in pairs(params.spritesheets or {}) do
         local spritesheet = SpriteSheet.load(paint, spritesheetfile, o:getHexSideLength())
@@ -66,7 +80,13 @@ function Map.load(params)
         o.spritesheets[spritesheet.name] = spritesheet
     end
 
+    -- create images
+    for name, imagefile in pairs(params.images or {}) do
+        o.images[name] = love.graphics.newImage(imagefile)
+    end
+
     -- Draw Sprites layer
+    local layer = o.sti:addCustomLayer("Sprites", 2)
     layer.draw = function(self)
 
         Selector:drawSelectedItems()
@@ -132,8 +152,6 @@ function Map.load(params)
         end
 
         Selector:draw()
-
-        love.graphics.setColor(1, 1, 1, 1)
     end
 
     o.astar = AStar.new{
@@ -220,11 +238,11 @@ function Map:getTileOfUnit(unit)
     return tile
 end
 
-function Map:enemiesInRange(unit, range)
+function Map:enemiesInRange(unit)
     local center = unit.tile
 
     return coroutine.wrap(function()
-        for x, y in HexMap.range(center, range) do
+        for x, y in HexMap.range(center, unit.range) do
             local tile = self:getTileAt(x, y)
             if tile and tile.units then
                 for _, aunit in ipairs(tile.units) do
@@ -269,17 +287,31 @@ function Map:removeUnitFromTile(unit, tile)
     local idx = pltablex.find(tile.units or {}, unit)
     assert(idx, string.format("Can't find unit at tile %d %d", tile.x, tile.y))
     table.remove(tile.units, idx)
+
+    if unit:isAllied() then
+        self:enlightTile(tile.x, tile.y, false)
+    end
 end
 
 function Map:addUnitToTile(unit, tile)
     assert(not pltablex.find(tile.units or {}, unit))
     tile.units = tile.units or {}
     table.insert(tile.units, unit)
+
+    if unit:isAllied() then
+        self:enlightTile(tile.x, tile.y, true)
+    else
+        if not tile.visibility or tile.visibility == 0 then
+            unit:setOpacity(1)
+        else
+            unit:setOpacity(0)
+        end
+    end
 end
 
 function Map:spawnSprite(sprite, tile)
     sprite.map = self
-    local spritesheet = self.spritesheets[sprite.typename]
+    local spritesheet = self.spritesheets[sprite.type]
     spritesheet:createSprite(sprite)
     sprite:setPos(sprite:getPositionAtTile(tile))
 end
@@ -320,6 +352,101 @@ function Map:addFloatingTextAtTile(tile, text, color)
         end
     }
     self:addDrawable(drtext)
+end
+
+function Map:throwObject(options)
+    local unit1 = assert(options.unit1, "unit1 options is mandatory")
+    local unit2 = assert(options.unit2, "unit2 options is mandatory")
+    local drawable = assert(options.drawable, "drawable options is mandatory")
+
+    local o1x, o1y = unit1:getOrigin()
+    local o2x, o2y = unit1:getOrigin()
+    local x1 = unit1.x + o1x
+    local y1 = unit1.y + o1y
+    local x2 = unit2.x + o2x
+    local y2 = unit2.y + o2y
+
+    local dy, dx = y2 - y1, x2 - x1
+    drawable.x, drawable.y = x1, y1
+    drawable.rotation = math.atan2( dy, dx )
+    drawable.animation = Animation.new{
+        duration = options.duration or 1,
+        fields = { "x", "y" },
+        varsto = { x = x2, y = y2 },
+        object = drawable,
+        callback_finished = function()
+            self:removeDrawable(drawable)
+            if options.callback then
+                options.callback(unit1, unit2, drawable)
+            end
+        end
+    }
+    self:addDrawable(drawable)
+end
+
+function Map:enlightTile(x, y, enlight)
+    local tile = self:getTileAt(x, y)
+    for tx, ty in HexMap.range(tile, 3, true) do
+        local t = self:getTileAt(tx, ty)
+        if t then
+            local visibility = t.visibility or 0
+            if enlight then
+                visibility = visibility + 1
+            else
+                visibility = visibility - 1
+                if visibility < 0 then
+                    visibility = 0
+                end
+            end
+            local visibility_changed = false
+            if visibility >= 1 then
+                if not t.visibility or t.visibility == 0 then
+                    self:setTileVisibility(tx, ty, "visible")
+                    visibility_changed = true
+                end
+            else
+                if not t.visibility or t.visibility > 0 then
+                    self:setTileVisibility(tx, ty, "semivisible")
+                    visibility_changed = true
+                end
+            end
+            t.visibility = visibility
+            if visibility_changed and t.units then
+                for _, unit in ipairs(t.units) do
+                    if not unit:isAllied() then
+                        if visibility > 0 then
+                            unit:setOpacity(0)
+                        else
+                            unit:setOpacity(1)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function Map:setTileVisibility(x, y, visibility)
+    local stile = self.sti.layers.Ground.data[y][x]
+    local instance = self.sti.instances[y][x]
+    if visibility == "invisible" then
+        instance.batch:setColor(self.visibility_masks.invisible)
+    elseif visibility == "semivisible" then
+        instance.batch:setColor(self.visibility_masks.semivisible)
+    else
+        assert(visibility == "visible")
+        instance.batch:setColor(self.visibility_masks.visible)
+    end
+    instance.batch:set(
+        instance.id,
+        stile.quad,
+        instance.x,
+        instance.y,
+        stile.r,
+        stile.sx,
+        stile.sy
+    )
+    instance.batch:setColor(1, 1, 1, 1)
 end
 
 function Map:update(dt)
@@ -369,7 +496,7 @@ function Map:smoothcentertile(tx, ty)
         callback_finished = function()
             self.animation = nil
         end,
-        callback_update = function (self, offset_x, offset_y)
+        callback_update = function (animation, offset_x, offset_y)
             self.offset_x, self.offset_y = offset_x, offset_y
         end
     }
@@ -420,7 +547,10 @@ function Map:mappressed(x, y, b)
         end
     elseif b == 3 then
         local tile_x, tile_y = self.sti:convertPixelToTile(x, y)
-        map:spawnSprite(Barbarian.new(Game.currentPlayer, "barbarian2"), self:getTileAt(tile_x, tile_y))
+        local sprites = {Doctor, Horseman, Archer, Spearman, Swordsman, Wizard}
+        local idx = math.random(2)
+        local sprite = sprites[idx]
+        map:spawnSprite(Horseman.new{player = Game.currentPlayer}, self:getTileAt(tile_x, tile_y))
     end
 end
 
@@ -486,6 +616,7 @@ function Map:keypressed(key)
         for unit in Selector:selectedUnits() do
             unit:destroy()
         end
+        Selector:clearSelection()
     end
 end
 

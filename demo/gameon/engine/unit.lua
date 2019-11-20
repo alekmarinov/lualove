@@ -10,27 +10,31 @@ local MissionIdle = require (thispackage..".mission.idle")
 local MissionMove = require (thispackage..".mission.move")
 local PLAYER_COLOR = require (thispackage..".enums").PLAYER_COLOR
 local HexMap = require "gameon.engine.algo.hexmap"
-
+local DrawableImage = require (thispackage..".drawable.image")
 local Game = require "gameon.game"
 
 --- Base Unit table
 -- @table Unit
 local Unit = setmetatable({
-    speed = 1, -- number of seconds to move from one tile to another
+    speed = 0, -- number of seconds to move from one tile to another
+    range = 0, -- attack range
     health = 100, -- the amount of health
     attack = 0, -- the amount health will be taken from enemy per hit
-    shield = 0 -- the amount of attack to be reduced by the enemy
+    shield = 0, -- the amount of attack to be reduced by the enemy
+    attack_modifier = {}, -- multiply attack against specified enemy type
+    shield_modifier = {} -- multiply shield against specified enemy type
 }, Sprite)
 Unit.__index = Unit
 
-function Unit.new(player, typename)
-    local o = setmetatable(Sprite.new{
-        color = player.color,
-        player = player,
-        typename = typename,
-        action = "Idle",
-    }, Unit)
+function Unit.new(options)
+    assert(options.player, "Unit player option is mandatory")
+    options.color = options.player.color
+    local o = setmetatable(Sprite.new(options), Unit)
+    o.action = "Idle"
     o.mission = MissionIdle.new{unit = o}
+    if not o:isAllied() then
+        o.opacity = 1
+    end
     return o
 end
 
@@ -64,7 +68,7 @@ function Unit:attackUnit(enemy)
 end
 
 function Unit:isNearBy(other)
-    return other:isAlive() and self:getDistanceTo(other.tile) == 1
+    return other:isAlive() and self:getDistanceTo(other.tile) <= self.range
 end
 
 function Unit:lookAtTile(tile)
@@ -98,7 +102,28 @@ function Unit:onFrameChanged(cycle, prevFrame, nextFrame)
                 self.attackAtCycle = cycle
                 -- is the enemy still in range to hit?
                 if self:isNearBy(self.enemy) then
-                    self.enemy:hit(self)
+                    if self.range == 1 then
+                        self.enemy:hit(self)
+                    else
+                        assert(self.throw, "throw is required when unit have a range > 1")
+                        local throwToTile = self.enemy.tile
+                        self.map:throwObject{
+                            unit1 = self,
+                            unit2 = self.enemy,
+                            drawable = DrawableImage.new{ image = self.map.images[self.throw] },
+                            callback = function()
+                                if self.enemy and self.enemy:isAlive() then
+                                    if throwToTile == self.enemy.tile then
+                                        -- the unit didn't changed the tile during throw
+                                        self.enemy:hit(self)
+                                    else
+                                        -- the unit avoided the hit by changing the tile
+                                        self.enemy:miss(self)
+                                    end
+                                end
+                            end
+                        }
+                    end
                 else
                     self.enemy:miss(self)
                 end
@@ -119,6 +144,10 @@ end
 
 function Unit:isFriendly(unit)
     return self.player.team == unit.player.team
+end
+
+function Unit:isAllied()
+    return self.player.team == Game.currentPlayer.team
 end
 
 function Unit:update(dt)
@@ -145,21 +174,27 @@ function Unit:canStepOnTile(tile)
     return self.map:getTileMovingPoints(tile) >= 0
 end
 
-function Unit:moveTo(x, y)
+function Unit:moveTo(x, y, attacking)
     assert(self:isAlive(), "Can't moveTo death unit")
 
     local tileto = self.map:getTileAtPixel(x, y)
     local followUnit = self.map:getUnitAtTile(tileto)
     if followUnit then
         tileto = nil
+        attacking = not self:isFriendly(followUnit)
     end
     self:setMission(MissionMove.new{
         unit = self,
         followUnit = followUnit,
-        tileto = tileto
+        tileto = tileto,
+        attacking = attacking
     })
     -- force showing patroling flag
     self.mission:onSelected(self:isSelected())
+end
+
+function Unit:attackTo(x, y)
+    self:moveTo(x, y, true)
 end
 
 function Unit:patrolTo(x, y)
@@ -168,11 +203,13 @@ function Unit:patrolTo(x, y)
     local tileto = self.map:getTileAtPixel(x, y)
     if getmetatable(self.mission)._NAME == "MissionMove" then
         self.mission:togglePatrolTile(tileto)
+        self.mission.attacking = true
         return
     end
     self:setMission(MissionMove.new{
         unit = self,
-        tileto = tileto
+        tileto = tileto,
+        attacking = true
     })
     -- force showing the patrol point
     self.mission:onSelected(self:isSelected())
@@ -200,11 +237,18 @@ end
 -- this unit has been hit by another unit
 function Unit:hit(otherUnit)
     assert(self:isAlive(), "Can't hit death unit")
-    local damage = math.max(0, otherUnit.attack - self.shield)
+    local attackMul = otherUnit.attack_modifier[self.type] or 1
+    local shieldMul = self.shield_modifier[otherUnit.type] or 1   
+    local damage = math.max(0, attackMul * otherUnit.attack - shieldMul * self.shield)
     self.health = math.max(0, self.health - damage)
     self.map:addFloatingTextAtTile(self.tile, tostring(-damage), PLAYER_COLOR[self.color])
     if self.health == 0 then
         self:die()
+    else
+        -- if we are currently idle response to attack immediatly
+        if self.action == "Idle" and self:getDistanceTo(otherUnit.tile) > self.range then
+            self:attackTo(otherUnit.x, otherUnit.y)
+        end
     end
 end
 

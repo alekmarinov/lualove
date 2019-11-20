@@ -7,10 +7,15 @@ local Map = require "gameon.engine.map"
 local Rules = require "gameon.rules"
 local Game = require "gameon.game"
 local Unit = require "gameon.engine.unit"
-local Barbarian = require "gameon.engine.unit.barbarian"
 local Sprite = require "gameon.engine.sprite"
 local DrawableText = require "gameon.engine.drawable.text"
 local Waiter = require "gameon.engine.waiter"
+local Horseman = require "gameon.engine.unit.horseman"
+local Spearman = require "gameon.engine.unit.spearman"
+local Archer = require "gameon.engine.unit.archer"
+local Doctor = require "gameon.engine.unit.doctor"
+local Swordsman = require "gameon.engine.unit.swordsman"
+local Wizard = require "gameon.engine.unit.wizard"
 
 -- love.window.setMode(1920, 1080, { fullscreen = true })
 
@@ -19,9 +24,9 @@ local time_multiplier = 1
 local waiter
 
 function love.load()
-    local music = love.audio.newSource( 'assets/music/Music 01.ogg', 'stream' )
-    music:setLooping(true)
-    music:play()
+    -- local music = love.audio.newSource( 'assets/music/Music 01.ogg', 'stream' )
+    -- music:setLooping(true)
+    -- music:play()
 
     Cursor:load("assets/cursor")
 
@@ -33,8 +38,7 @@ function love.load()
 
     Rules:setInitResources{
         gold = 100,
-        wood = 100,
-        food = 100
+        menpower = 10
     }
 
     -- The game needs rules
@@ -58,9 +62,17 @@ function love.load()
     map = Map.load{
         mapfile = "assets/map/island.lua",
         spritesheets = {
-            ["assets/sprite/barbarian2.json"] = { "BLUE" },
-            ["assets/sprite/barbarian1.json"] = { "RED" },
+            ["assets/sprite/archer.json"] = { "RED", "BLUE" },
+            ["assets/sprite/doctor.json"] = { "RED", "BLUE" },
+            ["assets/sprite/horseman.json"] = { "RED", "BLUE" },
+            ["assets/sprite/spearman.json"] = { "RED", "BLUE" },
+            ["assets/sprite/swordsman.json"] = { "RED", "BLUE" },
+            ["assets/sprite/wizard.json"] = { "RED", "BLUE" },
             ["assets/sprite/flag.json"] = { "BLUE", "RED" }
+        },
+        images = {
+            arrow = "assets/image/arrow.png",
+            ball = "assets/image/ball.png"
         }
     }
     map.debug = false
@@ -68,28 +80,41 @@ function love.load()
     -- The game will play on a map
     Game:setMap(map)
 
-    local patrol_from = map:getTileAt(30, 14)
-    local patrol_to = map:getTileAt(29, 31)
+    local point1 = map:getTileAt(41, 17)
+    -- local point2 = map:getTileAt(74, 91)
+    local point2 = map:getTileAt(23, 8)
+
+    -- local enemy = Swordsman.new{ player = enemyPlayer}
+    -- map:spawnSprite(enemy, point1)
+    -- local px, py = map:convertTileToPixel(point2.x, point2.y)
+    -- enemy:patrolTo(px, py)
+    -- local px, py = map:convertTileToPixel(point1.x, point1.y)
+    -- enemy:patrolTo(px, py)
+
     waiter = Waiter.new{
         duration = 5,
-        callback_finished = function(_, self)
+        callback_finished = function(self)
             self:reset()
-        
-            -- spawn enemy
-            local enemy = Barbarian.new(currentPlayer, "barbarian2")
-            map:spawnSprite(enemy, patrol_from)
-            local px, py = map:convertTileToPixel(patrol_to.x, patrol_to.y)
-            enemy:patrolTo(px, py)
-            px, py = map:convertTileToPixel(patrol_from.x, patrol_from.y)
-            enemy:patrolTo(px, py)
 
+            local sprites = {Doctor, Horseman, Archer, Spearman, Swordsman, Wizard}
+            local idx = math.random(#sprites)
+            local sprite = sprites[idx]
+        
             -- spawn friend
-            local friend = Barbarian.new(enemyPlayer, "barbarian1")
-            map:spawnSprite(friend, patrol_to)
-            local px, py = map:convertTileToPixel(patrol_from.x, patrol_from.y)
+            local friend = sprite.new{ player = currentPlayer }
+            map:spawnSprite(friend, point1)
+            local px, py = map:convertTileToPixel(point2.x, point2.y)
             friend:patrolTo(px, py)
-            px, py = map:convertTileToPixel(patrol_to.x, patrol_to.y)
+            px, py = map:convertTileToPixel(point1.x, point1.y)
             friend:patrolTo(px, py)
+
+            -- spawn enemy
+            local enemy = sprite.new{ player = enemyPlayer}
+            map:spawnSprite(enemy, point2)
+            local px, py = map:convertTileToPixel(point1.x, point1.y)
+            enemy:patrolTo(px, py)
+            px, py = map:convertTileToPixel(point2.x, point2.y)
+            enemy:patrolTo(px, py)
         end
     }
 end
@@ -97,12 +122,15 @@ end
 function love.update(dt)
     -- FIXME: game:update(dt)
     map:update(dt * time_multiplier)
-    waiter:update(dt * time_multiplier)
+    if waiter then
+        waiter:update(dt * time_multiplier)
+    end
 end
 
 function love.draw()
     -- FIXME: game:draw()
     map:draw()
+    love.graphics.print(string.format('fps: %.1f, mem: %d kb', love.timer.getFPS(), collectgarbage('count')), 10, 10)
 end
 
 function love.wheelmoved(x, y)

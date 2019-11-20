@@ -12,8 +12,7 @@ function Player.new(options)
     o.units = {}
     o.resources = {
         gold = o.game.rules.init_resources.gold or 0,
-        wood = o.game.rules.init_resources.wood or 0,
-        food = o.game.rules.init_resources.food or 0
+        menpower = o.game.rules.init_resources.menpower or 0
     }
     return o
 end

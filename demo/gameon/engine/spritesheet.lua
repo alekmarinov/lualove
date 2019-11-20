@@ -115,6 +115,7 @@ function SpriteSheet:updateSprite(sprite)
     local color = sprite.color
     local frameinfo = self.frames[sprite.action][sprite.frame_index]
     local flipped_correction = sprite.flipped and frameinfo.frame.w or 0
+    self.batches[color]:setColor(1, 1, 1, 1 - sprite.opacity)
     self.batches[color]:set(sprite.sprite_index, frameinfo.quad, sprite.x + flipped_correction, sprite.y, 0, sprite.flipped and -1 or 1, 1)
 end
 

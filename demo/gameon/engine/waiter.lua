@@ -21,7 +21,7 @@ function Waiter:update(dt)
         return false
     else
         self.timer = 0
-        self.callback_finished(self.object, self)
+        self.callback_finished(self)
         return true
     end
 end

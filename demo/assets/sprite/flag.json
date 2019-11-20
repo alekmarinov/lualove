@@ -4,20 +4,20 @@
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "sourceSize": {
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "pivot": {
         "x": 0.5,
@@ -27,21 +27,21 @@
     "tmp/flag_1": {
       "frame": {
         "x": 0,
-        "y": 23,
-        "w": 50,
-        "h": 23
+        "y": 30,
+        "w": 65,
+        "h": 30
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "sourceSize": {
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "pivot": {
         "x": 0.5,
@@ -50,22 +50,22 @@
     },
     "tmp/flag_2": {
       "frame": {
-        "x": 50,
+        "x": 65,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "sourceSize": {
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "pivot": {
         "x": 0.5,
@@ -74,22 +74,22 @@
     },
     "tmp/flag_3": {
       "frame": {
-        "x": 50,
-        "y": 23,
-        "w": 50,
-        "h": 23
+        "x": 65,
+        "y": 30,
+        "w": 65,
+        "h": 30
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "sourceSize": {
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "pivot": {
         "x": 0.5,
@@ -99,21 +99,21 @@
     "tmp/flag_4": {
       "frame": {
         "x": 0,
-        "y": 46,
-        "w": 50,
-        "h": 23
+        "y": 60,
+        "w": 65,
+        "h": 30
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "sourceSize": {
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "pivot": {
         "x": 0.5,
@@ -122,22 +122,22 @@
     },
     "tmp/flag_5": {
       "frame": {
-        "x": 50,
-        "y": 46,
-        "w": 50,
-        "h": 23
+        "x": 65,
+        "y": 60,
+        "w": 65,
+        "h": 30
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "sourceSize": {
-        "w": 50,
-        "h": 23
+        "w": 65,
+        "h": 30
       },
       "pivot": {
         "x": 0.5,
@@ -151,8 +151,8 @@
     "image": "flag.png",
     "format": "RGBA8888",
     "size": {
-      "w": 100,
-      "h": 69
+      "w": 130,
+      "h": 90
     },
     "scale": 1
   }

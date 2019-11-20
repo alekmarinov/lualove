@@ -51,13 +51,13 @@ function HexMap.offset_distance(a, b)
     return HexMap.cube_distance(ax, ay, az, bx, by, bz)
 end
 
-function HexMap.range(center, N)
+function HexMap.range(center, N, withcenter)
     local cx, cy, cz = HexMap.offset_to_cube(center.x, center.y)
 
     return coroutine.wrap(function()
         for x = -N, N do
             for y = math.max(-N, -x - N), math.min(N, -x + N) do
-                if x ~= 0 or y ~= 0 then
+                if withcenter or (x ~= 0 or y ~= 0) then
                     local z = -x -y
                     coroutine.yield(HexMap.cube_to_offset(cx + x, cy + y, cz + z))
                 end

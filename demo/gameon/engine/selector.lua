@@ -37,10 +37,17 @@ function Selector:selectedUnits()
     end)
 end
 
+function Selector:canClearSelection()
+    return not love.keyboard.isDown("lshift") and not love.keyboard.isDown("rshift")
+end
+
 function Selector:collect_selected_units()
     assert(self.drag_from, "Missing selected area")
 
-    self:clear_selection()
+    if self:canClearSelection() then
+        self:clearSelection()
+    end
+
     local tile_from_tx, tile_from_ty = Game.map:convertPixelToTile(self.drag_from.x, self.drag_from.y)
     local tile_to_tx, tile_to_ty = Game.map:convertPixelToTile(self.drag_to.x, self.drag_to.y)
     local drag_delta_x = math.abs(self.drag_from.x - self.drag_to.x)
@@ -84,7 +91,7 @@ function Selector:onEvent(unit, eventName)
     assert(nil, "Can't find unit in selected_units")
 end
 
-function Selector:clear_selection()
+function Selector:clearSelection()
     for i = 1, #self.selected_units do
         self.selected_units[i].eventBox:removeListener(self)
         self.selected_units[i] = nil
@@ -106,7 +113,9 @@ function Selector:mappressed(x, y, b)
     for _, unit in ipairs(self.selected_units) do
         unit:onSelected(false)
     end
-    self:clear_selection()
+    if self:canClearSelection() then
+        self:clearSelection()
+    end
     return true
 end
 
@@ -126,13 +135,13 @@ function Selector:mapmoved(x, y, dx, dy, istouch)
     else
         if #self.selected_units > 0 then
             local tile = Game.map:getTileAtPixel(x, y)
-            local unitAtTile = Game.map:getUnitAtTile(tile)
+            local unitAtTile = tile and Game.map:getUnitAtTile(tile)
             if unitAtTile then
                 if #self.selected_units == 1 and self.selected_units[1] == unitAtTile then
                     -- no need a single unit to protect itself
                     Cursor:setArrow()
                 else
-                    if unitAtTile.player.team == Game.currentPlayer.team then
+                    if unitAtTile:isAllied() then
                         Cursor:setProtect()
                     else
                         Cursor:setAttack()
@@ -152,6 +161,9 @@ function Selector:keypressed(key)
     if key == "escape" then
         self:reset()
         return true
+    elseif key == "shift" then
+            self:reset()
+            return true
     end
 end
 

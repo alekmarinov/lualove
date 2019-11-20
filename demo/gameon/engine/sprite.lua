@@ -9,11 +9,14 @@ local EventBox = require (thispackage..".eventbox")
 -- @table Sprite
 local Sprite = {
     color = nil, -- The spritesheet's color of this sprite
-    action = nil, -- The name of current animation action
+    action = nil, -- The name of current animation action,
+    opacity = 0, -- Sprites' opacity
+    lock_opacity = false, -- Set the opacity as locked to avoid changing by fade during move
     x = 0, -- The sprite x position
     y = 0, -- The sprite y position
     last_update_x = -1, -- The x position of last sprite update
     last_update_y = -1, -- The y position of last sprite update
+    last_update_opacity = -1, -- The opacity of last sprite update
     flipped = false, -- Is the sprite flipped horizontally
     cycle = 0 -- animation cycle
 }
@@ -22,7 +25,9 @@ Sprite.__index = Sprite
 function Sprite.new(o)
     assert(o and o.color, "color attribute is mandatory")
     o = setmetatable(o, Sprite)
-    o.action = o.action or o.typename
+    if not o.action then
+        o.action = o.type -- there is only one action with the name of the sprite type
+    end
     o.eventBox = EventBox.new(o)
     return o
 end
@@ -47,10 +52,24 @@ function Sprite:getPositionAtTile(tile)
     return px, py
 end
 
-function Sprite:setPos(x, y)
+function Sprite:setOpacity(opacity)
+    self.opacity = opacity
+    self:lockOpacity(true)
+end
+
+function Sprite:lockOpacity(locked)
+    self.lock_opacity = locked
+end
+
+function Sprite:getOrigin()
     local frameinfo = self.spriteSheet.frames[self.action]
-    local tx, ty = self.map:convertPixelToTile(x + frameinfo.origin_x, y + frameinfo.origin_y)
-    self.tile = self.map:getTileAt(tx, ty)   
+    return frameinfo.origin_x, frameinfo.origin_y
+end
+
+function Sprite:setPos(x, y)
+    local ox, oy = self:getOrigin()
+    local tx, ty = self.map:convertPixelToTile(ox + x, oy + y)
+    self.tile = self.map:getTileAt(tx, ty)
     self.x = x
     self.y = y
 end
@@ -63,8 +82,8 @@ function Sprite:update(dt)
     if self.animation then
         self.animation:update(dt)
     end
-    local force_update = self.last_update_x ~= self.x or self.last_update_y ~= self.y
-    self.last_update_x, self.last_update_y = self.x, self.y
+    local force_update = self.last_update_x ~= self.x or self.last_update_y ~= self.y or self.last_update_opacity ~= self.opacity
+    self.last_update_x, self.last_update_y, self.last_update_opacity = self.x, self.y, self.opacity
     local action_frames_count = #assert(self.spriteSheet.frames[self.action], "Action "..self.action.." is undefined")
     local action_duration = self.spriteSheet.frames[self.action].duration
     self.current_time = self.current_time + dt
