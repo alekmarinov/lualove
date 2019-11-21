@@ -25,6 +25,8 @@ local Spearman = require (thispackage..".unit.spearman")
 local Swordsman = require (thispackage..".unit.swordsman")
 local Wizard = require (thispackage..".unit.wizard")
 
+local Castle = require (thispackage..".structure.castle")
+
 --- Base Map table
 -- @table Map
 local Map = {
@@ -55,6 +57,7 @@ function Map.load(params)
         cross = nil,
         debug = true
     }, Map)
+
     o.sti = sti(params.mapfile)
 
     -- create map tiles
@@ -86,7 +89,7 @@ function Map.load(params)
     end
 
     -- Draw Sprites layer
-    local layer = o.sti:addCustomLayer("Sprites", 2)
+    local layer = o.sti:addCustomLayer("Sprites")
     layer.draw = function(self)
 
         Selector:drawSelectedItems()
@@ -161,6 +164,41 @@ function Map.load(params)
             return tonumber(props.move_points)
         end
     }
+
+    Game.currentPlayer.map = o
+
+    -- Process map objects
+    for _, object in ipairs(o.sti.layers.Objects.objects) do
+        local tile = o:getTileAt(o:convertPixelToTile(object.x, object.y))
+        if object.name == "Player" then
+            local player = Game:getPlayers{race = object.type}[1]
+            if not player then
+                player = Game:createPlayer{
+                    type = "AI",
+                    race = object.type,
+                    map = o
+                }
+            end
+            local castle = Castle.new{ tile = tile }
+            player:addStructure(castle)
+            o:addStructureToTile(castle, tile)
+        elseif object.type == "Unit" then
+                local unitclasses = {
+                Archer = Archer,
+                Doctor = Doctor,
+                Horseman = Horseman,
+                Spearman = Spearman,
+                Swordsman = Swordsman,
+                Wizard = Wizard
+            }
+
+            if not Game.neutralPlayer then
+                -- Create the neutral player
+                Game:createNeutralPlayer()
+            end
+            o:spawnSprite(unitclasses[object.name].new{ player = Game.neutralPlayer }, tile)
+        end
+    end
 
     return o
 end
@@ -294,8 +332,8 @@ function Map:removeUnitFromTile(unit, tile)
 end
 
 function Map:addUnitToTile(unit, tile)
-    assert(not pltablex.find(tile.units or {}, unit))
     tile.units = tile.units or {}
+    assert(not pltablex.find(tile.units, unit))
     table.insert(tile.units, unit)
 
     if unit:isAllied() then
@@ -305,6 +343,22 @@ function Map:addUnitToTile(unit, tile)
             unit:setOpacity(1)
         else
             unit:setOpacity(0)
+        end
+    end
+end
+
+function Map:addStructureToTile(structure, tile)
+    tile.structures = tile.structures or {}
+    assert(not pltablex.find(tile.structures, structure))
+    table.insert(tile.structures, structure)
+
+    if structure:isAllied() then
+        self:enlightTile(tile.x, tile.y, true)
+    else
+        if not tile.visibility or tile.visibility == 0 then
+            structure:setOpacity(1)
+        else
+            structure:setOpacity(0)
         end
     end
 end
@@ -546,7 +600,7 @@ function Map:mappressed(x, y, b)
             end
         end
     elseif b == 3 then
-        local tile_x, tile_y = self.sti:convertPixelToTile(x, y)
+        local tile_x, tile_y = self:convertPixelToTile(x, y)
         local sprites = {Doctor, Horseman, Archer, Spearman, Swordsman, Wizard}
         local idx = math.random(2)
         local sprite = sprites[idx]

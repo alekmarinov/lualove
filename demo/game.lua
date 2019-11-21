@@ -47,42 +47,45 @@ function love.load()
     -- Create the blue player as HUMAN
     local currentPlayer = Game:createPlayer{
         type = "HUMAN",
+        race = "Europeans",
         color = "BLUE",
         team = 1
     }
     Game:setCurrentPlayer(currentPlayer)
 
-    -- Create the red player as AI
-    local enemyPlayer = Game:createPlayer{
-        type = "AI",
-        color = "RED",
-        team = 2
-    }
-
     map = Map.load{
         mapfile = "assets/map/island.lua",
         spritesheets = {
-            ["assets/sprite/archer.json"] = { "RED", "BLUE" },
-            ["assets/sprite/doctor.json"] = { "RED", "BLUE" },
-            ["assets/sprite/horseman.json"] = { "RED", "BLUE" },
-            ["assets/sprite/spearman.json"] = { "RED", "BLUE" },
-            ["assets/sprite/swordsman.json"] = { "RED", "BLUE" },
-            ["assets/sprite/wizard.json"] = { "RED", "BLUE" },
-            ["assets/sprite/flag.json"] = { "BLUE", "RED" }
+            ["assets/sprite/archer.json"] = { "BLUE", "YELLOW", "GREEN" },
+            ["assets/sprite/doctor.json"] = { "BLUE", "YELLOW", "GREEN" },
+            ["assets/sprite/horseman.json"] = { "BLUE", "YELLOW", "GREEN", "CYAN" },
+            ["assets/sprite/spearman.json"] = { "BLUE", "YELLOW", "GREEN" },
+            ["assets/sprite/swordsman.json"] = { "BLUE", "YELLOW", "GREEN" },
+            ["assets/sprite/wizard.json"] = { "BLUE", "YELLOW", "GREEN", "CYAN" },
+            ["assets/sprite/flag.json"] = { "BLUE", "YELLOW", "GREEN" }
         },
         images = {
             arrow = "assets/image/arrow.png",
             ball = "assets/image/ball.png"
         }
     }
+
+    -- -- Create the red player as AI
+    -- local enemyPlayer = Game:createPlayer{
+    --     type = "AI",
+    --     color = "RED",
+    --     team = 2,
+    --     race = "Northmans"
+    -- }
+
     map.debug = false
 
     -- The game will play on a map
     Game:setMap(map)
 
-    local point1 = map:getTileAt(41, 17)
-    -- local point2 = map:getTileAt(74, 91)
-    local point2 = map:getTileAt(23, 8)
+    -- local point1 = map:getTileAt(41, 17)
+    -- -- local point2 = map:getTileAt(74, 91)
+    -- local point2 = map:getTileAt(23, 8)
 
     -- local enemy = Swordsman.new{ player = enemyPlayer}
     -- map:spawnSprite(enemy, point1)
@@ -91,32 +94,32 @@ function love.load()
     -- local px, py = map:convertTileToPixel(point1.x, point1.y)
     -- enemy:patrolTo(px, py)
 
-    waiter = Waiter.new{
-        duration = 5,
-        callback_finished = function(self)
-            self:reset()
+    -- waiter = Waiter.new{
+    --     duration = 5,
+    --     callback_finished = function(self)
+    --         self:reset()
 
-            local sprites = {Doctor, Horseman, Archer, Spearman, Swordsman, Wizard}
-            local idx = math.random(#sprites)
-            local sprite = sprites[idx]
+    --         local sprites = {Doctor, Horseman, Archer, Spearman, Swordsman, Wizard}
+    --         local idx = math.random(#sprites)
+    --         local sprite = sprites[idx]
         
-            -- spawn friend
-            local friend = sprite.new{ player = currentPlayer }
-            map:spawnSprite(friend, point1)
-            local px, py = map:convertTileToPixel(point2.x, point2.y)
-            friend:patrolTo(px, py)
-            px, py = map:convertTileToPixel(point1.x, point1.y)
-            friend:patrolTo(px, py)
+    --         -- spawn friend
+    --         local friend = sprite.new{ player = currentPlayer }
+    --         map:spawnSprite(friend, point1)
+    --         local px, py = map:convertTileToPixel(point2.x, point2.y)
+    --         friend:patrolTo(px, py)
+    --         px, py = map:convertTileToPixel(point1.x, point1.y)
+    --         friend:patrolTo(px, py)
 
-            -- spawn enemy
-            local enemy = sprite.new{ player = enemyPlayer}
-            map:spawnSprite(enemy, point2)
-            local px, py = map:convertTileToPixel(point1.x, point1.y)
-            enemy:patrolTo(px, py)
-            px, py = map:convertTileToPixel(point2.x, point2.y)
-            enemy:patrolTo(px, py)
-        end
-    }
+    --         -- spawn enemy
+    --         local enemy = sprite.new{ player = enemyPlayer}
+    --         map:spawnSprite(enemy, point2)
+    --         local px, py = map:convertTileToPixel(point1.x, point1.y)
+    --         enemy:patrolTo(px, py)
+    --         px, py = map:convertTileToPixel(point2.x, point2.y)
+    --         enemy:patrolTo(px, py)
+    --     end
+    -- }
 end
 
 function love.update(dt)

@@ -7,6 +7,17 @@ local enums = {
             MAGENTA = {1, 0, 1},
             CYAN = {0, 1, 1},
             GRAY = {1, 1, 1}
+    },
+    RACES = {
+        Northmans = {
+            color = "GREEN"
+        },
+        Europeans = {
+            color = "BLUE"
+        },
+        Arabs = {
+            color = "YELLOW"
+        }
     }
 }
 return enums

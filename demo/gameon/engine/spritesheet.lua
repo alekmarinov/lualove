@@ -19,7 +19,7 @@ end
 
 --- Loads spritesheet from file
 -- @string jsonfile Path to json file in the format of Free Texture Packer
-function SpriteSheet.load(painter, jsonfile, hexsidelength)
+function SpriteSheet.load(painter, jsonfile)
     local jsonstr, err = love.filesystem.read(jsonfile)
     if not jsonstr then
         return nil, err
@@ -90,7 +90,14 @@ function SpriteSheet:createSprite(sprite)
 
     local frameinfo = self.frames[sprite.action][sprite.frame_index]
     local flipped_correction = sprite.flipped and frameinfo.frame.w or 0
-    local params = {frameinfo.quad, sprite.x + flipped_correction, sprite.y, 0, sprite.flipped and -1 or 1, 1}
+    local params = {
+        frameinfo.quad,
+        sprite.x + flipped_correction,
+        sprite.y, 
+        0,
+        sprite.scale_x * (sprite.flipped and -1 or 1),
+        sprite.scale_y * 1
+    }
     if sprite_index > self.sprites[color].max_sprite_index then
         -- add new sprite's quad to batch
         self.batches[color]:add(unpack(params))
@@ -116,7 +123,14 @@ function SpriteSheet:updateSprite(sprite)
     local frameinfo = self.frames[sprite.action][sprite.frame_index]
     local flipped_correction = sprite.flipped and frameinfo.frame.w or 0
     self.batches[color]:setColor(1, 1, 1, 1 - sprite.opacity)
-    self.batches[color]:set(sprite.sprite_index, frameinfo.quad, sprite.x + flipped_correction, sprite.y, 0, sprite.flipped and -1 or 1, 1)
+    self.batches[color]:set(
+        sprite.sprite_index,
+        frameinfo.quad,
+        sprite.x + flipped_correction,
+        sprite.y, 
+        0,
+        sprite.scale_x * (sprite.flipped and -1 or 1),
+        sprite.scale_y * 1)
 end
 
 --- Deletes sprite instance

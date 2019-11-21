@@ -14,6 +14,8 @@ local Sprite = {
     lock_opacity = false, -- Set the opacity as locked to avoid changing by fade during move
     x = 0, -- The sprite x position
     y = 0, -- The sprite y position
+    scale_x = 1, -- Sprite scale by x
+    scale_y = 1, -- Sprite scale by y
     last_update_x = -1, -- The x position of last sprite update
     last_update_y = -1, -- The y position of last sprite update
     last_update_opacity = -1, -- The opacity of last sprite update
@@ -47,8 +49,8 @@ end
 function Sprite:getPositionAtTile(tile)
     local px, py = self.map:convertTileToPixel(tile.x, tile.y)
     local frameinfo = self.spriteSheet.frames[self.action]
-    px = px - frameinfo.origin_x
-    py = py - frameinfo.origin_y
+    px = px - frameinfo.origin_x * self.scale_x
+    py = py - frameinfo.origin_y * self.scale_y
     return px, py
 end
 
