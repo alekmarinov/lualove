@@ -5,7 +5,8 @@ local Doctor = setmetatable({
     range = 1,
     attack = 15,
     shield = 0,
-    type = "doctor"
+    type = "doctor",
+    gold = 100
 }, Unit)
 Doctor.__index = Doctor
 

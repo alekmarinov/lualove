@@ -6,7 +6,8 @@ local Archer = setmetatable({
     throw = "arrow",
     attack = 20,
     shield = 5,
-    type = "archer"
+    type = "archer",
+    gold = 100
 }, Unit)
 Archer.__index = Archer
 

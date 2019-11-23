@@ -1,7 +1,6 @@
 local pltablex = require "pl.tablex"
 local thispackage = (...):match("(.-)[^%.]+$")
 local MissionBase = require (thispackage..".base")
-local Game = require "gameon.game"
 local Animation = require "gameon.engine.animation"
 local Waiter = require "gameon.engine.waiter"
 local Sprite = require "gameon.engine.sprite"
@@ -219,7 +218,7 @@ function MissionMove:moveToTile(tile, callback)
     self:reserveTile(tile)
     self.moveto.x, self.moveto.y = self.unit:getPositionAtTile(tile)
     if not self.unit:isAllied() then
-        if not tile.visibility or tile.visibility == 0 then
+        if self.map.enable_fog and (not tile.visibility or tile.visibility == 0) then
             -- fade unit to invisible
             self.moveto.opacity = 1
         else

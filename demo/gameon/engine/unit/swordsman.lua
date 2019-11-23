@@ -8,7 +8,8 @@ local Swordsman = setmetatable({
     type = "swordsman",
     shield_modifier = {
         archer = 1.2
-    }
+    },
+    gold = 150
 }, Unit)
 Swordsman.__index = Swordsman
 

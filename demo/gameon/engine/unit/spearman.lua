@@ -8,7 +8,8 @@ local Spearman = setmetatable({
     type = "spearman",
     attack_modifier = {
         horseman = 1.5
-    }
+    },
+    gold = 100
 }, Unit)
 Spearman.__index = Spearman
 

@@ -15,6 +15,10 @@ function Game:setRules(rules)
     self.rules = rules
 end
 
+function Game:setAI(AI)
+    self.AI = AI
+end
+
 function Game:newTeam()
     self.teamgen = self.teamgen + 1
     return self.teamgen
@@ -50,11 +54,10 @@ function Game:getPlayers(filter)
     return players
 end
 
-function Game:createNeutralPlayer()
-    self.neutralPlayer = self:createPlayer{
-        team = 0,
-        color = "CYAN"
-    }
+function Game:createNeutralPlayer(options)
+    options.team = 0
+    options.color = "CYAN"
+    self.neutralPlayer = self:createPlayer(options)
 end
 
 function Game:setCurrentPlayer(player)
@@ -63,6 +66,45 @@ end
 
 function Game:getCurrentPlayer()
     return self.currentPlayer
+end
+
+function Game:removePlayer(player)
+    for i, p in ipairs(self.players) do
+        if p == player then
+            table.remove(self.players, i)
+            if player == self.currentPlayer then
+                self.currentPlayer = nil
+            elseif player == self.neutralPlayer then
+                self.neutralPlayer = nil
+            end
+            return
+        end
+    end
+end
+
+function Game:update(dt)
+    for _, player in ipairs(self.players) do
+        if #player.structures == 0 and #player.units == 0 then
+            player:destroy()
+            return
+        end
+        player:update(dt)
+    end
+end
+
+function Game:getWinnerTeam()
+    local lastteam = 0
+    for i, p in ipairs(self.players) do
+        if p.team ~= 0 and p.team ~= lastteam then
+            if lastteam ~= 0 then
+                -- Still two different teams are in game
+                return 0
+            end
+            lastteam = p.team
+        end
+    end
+    -- Last remaining team
+    return lastteam
 end
 
 return Game

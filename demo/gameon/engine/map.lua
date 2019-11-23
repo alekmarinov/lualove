@@ -26,6 +26,7 @@ local Swordsman = require (thispackage..".unit.swordsman")
 local Wizard = require (thispackage..".unit.wizard")
 
 local Castle = require (thispackage..".structure.castle")
+local Camp = require (thispackage..".structure.camp")
 
 --- Base Map table
 -- @table Map
@@ -53,10 +54,13 @@ function Map.load(params)
         offset_x = 0,
         offset_y = 0,
         debug_selected_tiles = {},
+        enable_fog = false,
         drawables = {},
         cross = nil,
         debug = true
     }, Map)
+
+    Selector.map = o
 
     o.sti = sti(params.mapfile)
 
@@ -68,7 +72,9 @@ function Map.load(params)
                 x = i,
                 y = j
             }
-            o:setTileVisibility(j, i, "invisible")
+            if o.enable_fog then
+                o:setTileVisibility(j, i, "invisible")
+            end
         end
     end
 
@@ -181,7 +187,7 @@ function Map.load(params)
             end
             local castle = Castle.new{ tile = tile }
             player:addStructure(castle)
-            o:addStructureToTile(castle, tile)
+            o:setStructureToTile(castle, tile)
         elseif object.type == "Unit" then
                 local unitclasses = {
                 Archer = Archer,
@@ -194,9 +200,20 @@ function Map.load(params)
 
             if not Game.neutralPlayer then
                 -- Create the neutral player
-                Game:createNeutralPlayer()
+                Game:createNeutralPlayer{ map = o }
             end
             o:spawnSprite(unitclasses[object.name].new{ player = Game.neutralPlayer }, tile)
+        elseif object.type == "Camp" then
+            local camp = Camp.new{ tile = tile }
+            if object.name == "Horsemen" then
+                camp.building.horseman = true
+            elseif object.name == "Wizards" then
+                camp.building.wizard = true
+            else
+                assert(nil, "Camp "..object.name.." is not supported")
+            end
+            Game.neutralPlayer:addStructure(camp)
+            o:setStructureToTile(camp, tile)
         end
     end
 
@@ -339,7 +356,7 @@ function Map:addUnitToTile(unit, tile)
     if unit:isAllied() then
         self:enlightTile(tile.x, tile.y, true)
     else
-        if not tile.visibility or tile.visibility == 0 then
+        if self.enable_fog and (not tile.visibility or tile.visibility == 0) then
             unit:setOpacity(1)
         else
             unit:setOpacity(0)
@@ -347,15 +364,13 @@ function Map:addUnitToTile(unit, tile)
     end
 end
 
-function Map:addStructureToTile(structure, tile)
-    tile.structures = tile.structures or {}
-    assert(not pltablex.find(tile.structures, structure))
-    table.insert(tile.structures, structure)
+function Map:setStructureToTile(structure, tile)
+    tile.structure = structure
 
     if structure:isAllied() then
         self:enlightTile(tile.x, tile.y, true)
     else
-        if not tile.visibility or tile.visibility == 0 then
+        if self.enable_fog and (not tile.visibility or tile.visibility == 0) then
             structure:setOpacity(1)
         else
             structure:setOpacity(0)
@@ -439,6 +454,9 @@ function Map:throwObject(options)
 end
 
 function Map:enlightTile(x, y, enlight)
+    if not self.enable_fog then
+        return 
+    end
     local tile = self:getTileAt(x, y)
     for tx, ty in HexMap.range(tile, 3, true) do
         local t = self:getTileAt(tx, ty)
@@ -465,13 +483,26 @@ function Map:enlightTile(x, y, enlight)
                 end
             end
             t.visibility = visibility
-            if visibility_changed and t.units then
-                for _, unit in ipairs(t.units) do
-                    if not unit:isAllied() then
+            if visibility_changed then
+                if t.units then
+                    -- englight units
+                    for _, unit in ipairs(t.units) do
+                        if not unit:isAllied() then
+                            if visibility > 0 then
+                                unit:setOpacity(0)
+                            else
+                                unit:setOpacity(1)
+                            end
+                        end
+                    end
+                end
+                if t.structure then
+                    -- englight structures
+                    if not t.structure:isAllied() then
                         if visibility > 0 then
-                            unit:setOpacity(0)
+                            t.structure:setOpacity(0)
                         else
-                            unit:setOpacity(1)
+                            t.structure:setOpacity(1)
                         end
                     end
                 end
@@ -534,6 +565,24 @@ function Map:wheelmoved(x, y)
     elseif self.zoom > 2 then
         self.zoom = 2
     end
+end
+
+function Map:tileAtCenter()
+    local tile_x, tile_y = self:convertPixelToTile(
+        love.graphics.getWidth() / 2 / self.zoom - self.offset_x,
+        love.graphics.getHeight() / 2 / self.zoom - self.offset_y
+    )
+    return self:getTileAt(tile_x, tile_y)
+end
+
+function Map:centerAtTile(tile)
+    if not tile then
+        return
+    end
+    self.offset_x, self.offset_y = self:convertTileToPixel(tile.x, tile.y)
+    self.offset_x, self.offset_y =
+        love.graphics.getWidth() / 2 / self.zoom - self.offset_x,
+        love.graphics.getHeight() / 2 / self.zoom - self.offset_y
 end
 
 function Map:smoothcentertile(tx, ty)
@@ -600,11 +649,16 @@ function Map:mappressed(x, y, b)
             end
         end
     elseif b == 3 then
+        if not Game.currentPlayer then
+        end
         local tile_x, tile_y = self:convertPixelToTile(x, y)
         local sprites = {Doctor, Horseman, Archer, Spearman, Swordsman, Wizard}
         local idx = math.random(2)
         local sprite = sprites[idx]
-        map:spawnSprite(Horseman.new{player = Game.currentPlayer}, self:getTileAt(tile_x, tile_y))
+        local tile = self:getTileAt(tile_x, tile_y)
+        if tile then
+            map:spawnSprite(Horseman.new{player = Game.currentPlayer}, tile)
+        end
     end
 end
 
@@ -663,8 +717,39 @@ function Map:keypressed(key)
         self.offset_x = self.offset_x + self.sti.hexsidelength
     elseif key == "right" then
         self.offset_x = self.offset_x - self.sti.hexsidelength
+    elseif key == "home" then
+        if not Game.currentPlayer then
+            return
+        end
+        local tile = self:tileAtCenter()
+        local selected_structure = Game.currentPlayer.structures[1]
+        for i, structure in ipairs(Game.currentPlayer.structures) do
+            if tile == structure.tile then
+                if i == #Game.currentPlayer.structures then
+                    i = 1
+                else
+                    i = i + 1
+                end
+                selected_structure = Game.currentPlayer.structures[i]
+                break
+            end
+        end
+        if selected_structure then
+            self:centerAtTile(selected_structure.tile)
+            Selector:selectStructure(selected_structure)
+        end
     elseif key == "d" then
         self.debug = not self.debug
+    elseif key == "f" then
+        if self.enable_fog then
+            -- enligh all tiles
+            for j = 1, #self.tiles do
+                for i = 1, #self.tiles[j] do
+                    self:setTileVisibility(i, j, "visible")
+                end
+            end
+        end
+        self.enable_fog = not self.enable_fog
     elseif key == "delete" then
         -- delete selected object
         for unit in Selector:selectedUnits() do

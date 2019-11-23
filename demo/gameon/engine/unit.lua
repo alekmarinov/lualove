@@ -47,6 +47,10 @@ function Unit:setPos(x, y)
             self.map:removeUnitFromTile(self, previousTile)
         end
         self.map:addUnitToTile(self, self.tile)
+        if self.tile.structure and not self.tile.structure:isFriendly(self) then
+            self.tile.structure.player:removeStructure(self.tile.structure)
+            self.player:addStructure(self.tile.structure)
+        end
     end
 end
 
@@ -147,7 +151,9 @@ function Unit:isFriendly(unit)
 end
 
 function Unit:isAllied()
-    return self.player.team == Game.currentPlayer.team
+    if Game.currentPlayer then
+        return self.player.team == Game.currentPlayer.team
+    end
 end
 
 function Unit:update(dt)
@@ -232,6 +238,7 @@ function Unit:destroy()
         self:die()
     end
     Sprite.destroy(self)
+    self.player:removeUnit(self)
 end
 
 -- this unit has been hit by another unit

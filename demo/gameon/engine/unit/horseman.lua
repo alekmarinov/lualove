@@ -5,7 +5,8 @@ local Horseman = setmetatable({
     speed = 0.5,
     attack = 25,
     shield = 10,
-    type = "horseman"
+    type = "horseman",
+    gold = 200
 }, Unit)
 Horseman.__index = Horseman
 

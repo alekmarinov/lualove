@@ -1,7 +1,7 @@
 if not love then
     love = require "love-portable"
 end
-
+local SimpleAI = require "gameon.engine.ai.simple"
 local Cursor = require "gameon.engine.cursor"
 local Map = require "gameon.engine.map"
 local Rules = require "gameon.rules"
@@ -41,6 +41,8 @@ function love.load()
         menpower = 10
     }
 
+    Game:setAI(SimpleAI)
+
     -- The game needs rules
     Game:setRules(Rules)
 
@@ -49,7 +51,7 @@ function love.load()
         type = "HUMAN",
         race = "Europeans",
         color = "BLUE",
-        team = 1
+        team = Game:newTeam()
     }
     Game:setCurrentPlayer(currentPlayer)
 
@@ -62,7 +64,7 @@ function love.load()
             ["assets/sprite/spearman.json"] = { "BLUE", "YELLOW", "GREEN" },
             ["assets/sprite/swordsman.json"] = { "BLUE", "YELLOW", "GREEN" },
             ["assets/sprite/wizard.json"] = { "BLUE", "YELLOW", "GREEN", "CYAN" },
-            ["assets/sprite/flag.json"] = { "BLUE", "YELLOW", "GREEN" }
+            ["assets/sprite/flag.json"] = { "BLUE", "YELLOW", "GREEN", "CYAN" }
         },
         images = {
             arrow = "assets/image/arrow.png",
@@ -125,6 +127,7 @@ end
 function love.update(dt)
     -- FIXME: game:update(dt)
     map:update(dt * time_multiplier)
+    Game:update(dt * time_multiplier)
     if waiter then
         waiter:update(dt * time_multiplier)
     end
@@ -133,7 +136,42 @@ end
 function love.draw()
     -- FIXME: game:draw()
     map:draw()
-    love.graphics.print(string.format('fps: %.1f, mem: %d kb', love.timer.getFPS(), collectgarbage('count')), 10, 10)
+    love.graphics.print(string.format("fps: %.1f, mem: %d kb", love.timer.getFPS(), collectgarbage('count')), 10, 10)
+    if Game.currentPlayer then
+        if Game:getWinnerTeam() == Game.currentPlayer.team then
+            love.graphics.print(string.format("You are the winner!"), 10, 25)
+        else
+            love.graphics.print(string.format("menpower: %d, gold: %d", Game.currentPlayer.resources.menpower, Game.currentPlayer.resources.gold), 10, 25)
+        end
+    else
+        love.graphics.print(string.format("You have been defeated!"), 10, 25)
+        local nplayers = #Game.players
+        if Game.neutralPlayer then
+            nplayers = nplayers - 1
+        end
+        if nplayers > 0 and Game:getWinnerTeam() ~= 0 then
+            local colors = {}
+            for _, winplayer in ipairs(Game:getPlayers{ team = Game:getWinnerTeam() }) do
+                table.insert(colors, winplayer.color)
+            end
+            local winning_players
+            if #colors > 1 then
+                local last = table.remove(colors)
+                winning_players = table.concat(colors, ", ")
+                winning_players = winning_players.." and "..last
+                table.insert(colors, last)
+            else
+                winning_players = colors[1]
+            end
+            local msg
+            if #colors > 1 then
+                msg = string.format("Players %s are the winners", winning_players)
+            else
+                msg = string.format("Player %s is the winner", winning_players)
+            end
+            love.graphics.print(msg, 10, 40)
+        end
+    end
 end
 
 function love.wheelmoved(x, y)

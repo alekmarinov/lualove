@@ -19,7 +19,10 @@ local Selector = {
     selection_line_color = {1, 1, 1, 1},
     selected_unit_line_style = "smooth",
     selected_unit_line_color = {1, 1, 1, 1},
-    selected_unit_line_width = 1
+    selected_unit_line_width = 1,
+    selected_structure_line_color = {1, 1, 1, 1},
+    selected_structure_line_width = 1,
+    selected_structure_line_style = "smooth"
 }
 Selector.__index = Selector
 
@@ -38,10 +41,10 @@ function Selector:selectedUnits()
 end
 
 function Selector:canClearSelection()
-    return not love.keyboard.isDown("lshift") and not love.keyboard.isDown("rshift")
+    return self.selected_structure ~= nil or (not love.keyboard.isDown("lshift") and not love.keyboard.isDown("rshift"))
 end
 
-function Selector:collect_selected_units()
+function Selector:collect_selected_items()
     assert(self.drag_from, "Missing selected area")
 
     if self:canClearSelection() then
@@ -61,15 +64,22 @@ function Selector:collect_selected_units()
     end
     for tx = tile_from_tx, tile_to_tx do
         for ty = tile_from_ty, tile_to_ty do
-            local tileInfo = Game.map:getTileAt(tx, ty)
-            if tileInfo and tileInfo.units then
-                for _, unit in ipairs(tileInfo.units) do
-                    if unit.player == Game.currentPlayer then
-                        table.insert(self.selected_units, unit)
-                        unit.eventBox:registerListener("die", self)
-                        if select_single then
-                            break
+            local tile = Game.map:getTileAt(tx, ty)
+            if tile then
+                if tile.units then
+                    for _, unit in ipairs(tile.units) do
+                        if unit.player == Game.currentPlayer then
+                            table.insert(self.selected_units, unit)
+                            unit.eventBox:registerListener("die", self)
+                            if select_single then
+                                break
+                            end
                         end
+                    end
+                end
+                if #self.selected_units == 0 and select_single then
+                    if tile.structure and tile.structure.player == Game.currentPlayer then
+                        self.selected_structure = tile.structure
                     end
                 end
             end
@@ -78,6 +88,11 @@ function Selector:collect_selected_units()
     for _, unit in ipairs(self.selected_units) do
         unit:onSelected(true)
     end
+end
+
+function Selector:selectStructure(structure)
+    self:clearSelection()
+    self.selected_structure = structure
 end
 
 function Selector:onEvent(unit, eventName)
@@ -96,6 +111,7 @@ function Selector:clearSelection()
         self.selected_units[i].eventBox:removeListener(self)
         self.selected_units[i] = nil
     end
+    self.selected_structure = nil
 end
 
 function Selector:reset()
@@ -122,7 +138,7 @@ end
 function Selector:mapreleased(x, y, b)
     if self.drag_from and self.drag_to then
         -- check what is selected
-        self:collect_selected_units()
+        self:collect_selected_items()
         self:reset()
         return true
     end
@@ -155,40 +171,49 @@ function Selector:mapmoved(x, y, dx, dy, istouch)
 end
 
 function Selector:keypressed(key)
-    if not self.drag_from then
-        return false
-    end
     if key == "escape" then
+        if not self.drag_from then
+            return false
+        end
         self:reset()
         return true
-    elseif key == "shift" then
-            self:reset()
-            return true
+    elseif self.selected_structure then
+        return self.selected_structure:keypressed(key)
     end
 end
 
 function Selector:drawSelectedItems()
-    if #self.selected_units > 0 then
+    if self.selected_structure then
         love.graphics.push("all")
-        love.graphics.setColor(self.selected_unit_line_color)
-        love.graphics.setLineWidth(self.selected_unit_line_width)
-        love.graphics.setLineStyle(self.selected_unit_line_style)
-        for _, unit in ipairs(self.selected_units) do
-            local frameinfo = unit.spriteSheet.frames[unit.action][unit.frame_index].frame
-            Draw.dashrect(
-                unit,
-                { x = unit.x + frameinfo.w - 1, y = unit.y + frameinfo.h - 1},
-                self.selection_dash_size,
-                self.selection_gap_size
-            )
-
-            -- love.graphics.ellipse("line", 
-            --     unit.x + frameinfo.w / 2,
-            --     unit.y + frameinfo.h - map:getHexSideLength() / 4, 
-            --     map:getHexSideLength(),
-            --     map:getHexSideLength() / 2)
-        end
+        love.graphics.setColor(self.selected_structure_line_color)
+        love.graphics.setLineWidth(self.selected_structure_line_width)
+        love.graphics.setLineStyle(self.selected_structure_line_style)
+        local px, py = self.map:convertTileToPixel(self.selected_structure.tile.x, self.selected_structure.tile.y)
+        Draw.hexagon(px, py, self.map.sti.hexsidelength)
         love.graphics.pop()
+    else
+        if #self.selected_units > 0 then
+            love.graphics.push("all")
+            love.graphics.setColor(self.selected_unit_line_color)
+            love.graphics.setLineWidth(self.selected_unit_line_width)
+            love.graphics.setLineStyle(self.selected_unit_line_style)
+            for _, unit in ipairs(self.selected_units) do
+                local frameinfo = unit.spriteSheet.frames[unit.action][unit.frame_index].frame
+                Draw.dashrect(
+                    unit,
+                    { x = unit.x + frameinfo.w - 1, y = unit.y + frameinfo.h - 1},
+                    self.selection_dash_size,
+                    self.selection_gap_size
+                )
+    
+                -- love.graphics.ellipse("line", 
+                --     unit.x + frameinfo.w / 2,
+                --     unit.y + frameinfo.h - map:getHexSideLength() / 4, 
+                --     map:getHexSideLength(),
+                --     map:getHexSideLength() / 2)
+            end
+            love.graphics.pop()
+        end
     end
 end
 

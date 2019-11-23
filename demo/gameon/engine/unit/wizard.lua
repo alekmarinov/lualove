@@ -7,6 +7,7 @@ local Wizard = setmetatable({
     attack = 30,
     shield = 0,
     type = "wizard",
+    gold = 300
 }, Unit)
 Wizard.__index = Wizard
 
