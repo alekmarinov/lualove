@@ -3,7 +3,7 @@
 
 local thispackage = (...):match("(.-)[^%.]+$")
 
-local pltablex = require "pl.tablex"
+local Util = require "gameon.util"
 local sti = require "sti"
 local Animation = require (thispackage..".animation")
 local DrawableText = require (thispackage..".drawable.text")
@@ -289,7 +289,7 @@ end
 
 function Map:getTileOfUnit(unit)
     local tile = unit.tile
-    tile = tile and tile.units and pltablex.find(tile.units, unit) and tile
+    tile = tile and tile.units and Util.find(tile.units, unit) and tile
     return tile
 end
 
@@ -339,7 +339,7 @@ end
 
 function Map:removeUnitFromTile(unit, tile)
     -- remove unit from tile
-    local idx = pltablex.find(tile.units or {}, unit)
+    local idx = Util.find(tile.units or {}, unit)
     assert(idx, string.format("Can't find unit at tile %d %d", tile.x, tile.y))
     table.remove(tile.units, idx)
 
@@ -350,7 +350,7 @@ end
 
 function Map:addUnitToTile(unit, tile)
     tile.units = tile.units or {}
-    assert(not pltablex.find(tile.units, unit))
+    assert(not Util.find(tile.units, unit))
     table.insert(tile.units, unit)
 
     if unit:isAllied() then
@@ -386,13 +386,13 @@ function Map:spawnSprite(sprite, tile)
 end
 
 function Map:addDrawable(drawable)
-    if not pltablex.find(self.drawables, drawable) then
+    if not Util.find(self.drawables, drawable) then
         table.insert(self.drawables, drawable)
     end
 end
 
 function Map:removeDrawable(drawable)
-    local idx = pltablex.find(self.drawables, drawable)
+    local idx = Util.find(self.drawables, drawable)
     if idx then
         table.remove(self.drawables, idx)
     end
@@ -717,7 +717,7 @@ function Map:keypressed(key)
         self.offset_x = self.offset_x + self.sti.hexsidelength
     elseif key == "right" then
         self.offset_x = self.offset_x - self.sti.hexsidelength
-    elseif key == "home" then
+    elseif key == "home" or key == "kp7" then
         if not Game.currentPlayer then
             return
         end

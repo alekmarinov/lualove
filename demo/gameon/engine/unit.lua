@@ -3,7 +3,6 @@
 
 local thispackage = (...):match("(.-)[^%.]+$")
 
-local pltablex = require "pl.tablex"
 local Sprite = require (thispackage..".sprite")
 local Animation = require (thispackage..".animation")
 local MissionIdle = require (thispackage..".mission.idle")

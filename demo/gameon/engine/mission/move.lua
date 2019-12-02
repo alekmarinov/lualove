@@ -1,4 +1,4 @@
-local pltablex = require "pl.tablex"
+local Util = require "gameon.util"
 local thispackage = (...):match("(.-)[^%.]+$")
 local MissionBase = require (thispackage..".base")
 local Animation = require "gameon.engine.animation"
@@ -295,7 +295,7 @@ end
 
 function MissionMove:togglePatrolTile(tile)
     self:showHideFlags(false)
-    local idx = pltablex.find(self.tiles, tile)
+    local idx = Util.find(self.tiles, tile)
     if idx then
         if idx == self.tileIdx then
             self.tileIdx = self.tileIdx - 1

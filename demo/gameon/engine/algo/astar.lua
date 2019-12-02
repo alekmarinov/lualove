@@ -4,7 +4,6 @@
 local thispackage = (...):match("(.-)[^%.]+$")
 
 local PriorityQueue = require (thispackage..".priorityqueue")
-local List = require 'pl.List'
 
 local AStar = {
     DEPTH_LIMIT = 200,
@@ -84,12 +83,11 @@ function AStar:find(start, goal, options)
 
     -- retrieve path to the closest tile found
     local current = closest
-    local path = List()
+    local path = {}
     while self.callback_distance(current, start) ~= 0 do
-        path:append(current)
+        table.insert(path, 1, current)
         current = came_from[current]
     end
-    path:reverse()
     return path
 end
 

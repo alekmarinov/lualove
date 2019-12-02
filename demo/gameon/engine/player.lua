@@ -2,7 +2,7 @@
 -- @module gameon.engine.Player
 
 local thispackage = (...):match("(.-)[^%.]+$")
-local pltablex = require "pl.tablex"
+local Util = require "gameon.util"
 local RACES = require (thispackage..".enums").RACES
 
 local Player = {
@@ -35,12 +35,12 @@ end
 
 function Player:addStructure(structure)
     structure:setPlayer(self)
-    assert(not pltablex.find(self.structures, structure), "Structure already added")
+    assert(not Util.find(self.structures, structure), "Structure already added")
     table.insert(self.structures, structure)
 end
 
 function Player:removeStructure(structure)
-    local idx = assert(pltablex.find(self.structures, structure), "Can't find structure")
+    local idx = assert(Util.find(self.structures, structure), "Can't find structure")
     table.remove(self.structures, idx)
 end
 
