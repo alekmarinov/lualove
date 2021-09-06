@@ -10,8 +10,8 @@ This projects sets up Love2D library (https://love2d.org/) to be used as a modul
 #### Ubuntu
 
 ```
-apt update
-apt install cmake \
+sudo apt-get update
+sudo apt-get -y install cmake \
 	make \
 	g++ \
 	libglu1-mesa-dev \
@@ -64,7 +64,7 @@ luarocks make --local
 ## Test
 
 ```
-lua demo/demo.lua
+lua demo/game.lua
 ```
 
 ## Debug
