@@ -12,6 +12,7 @@ description = {
    license = "MIT/X11"
 }
 dependencies = {
+   "dkjson"
 }
 build = {
    type = "cmake",
