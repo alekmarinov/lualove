@@ -1,7 +1,7 @@
 
-# love-portable
+# lualove
 
-This projects sets up Love2D library (https://love2d.org/) to be used as a module from standalone Lua binary.
+This projects makes Love2D library (https://love2d.org/) requirable with standard Lua 5.1 interpreter.
 
 ## Building Love2D
 
@@ -65,5 +65,5 @@ luarocks make --local
 ## Test
 
 ```
-lua -llove-portable
+lua -llualove
 ```
