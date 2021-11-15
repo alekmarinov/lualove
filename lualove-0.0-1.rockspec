@@ -13,5 +13,6 @@ description = {
 }
 
 build = {
-   type = "builtin"
+   type = "builtin",
+   modules = {}
 }
